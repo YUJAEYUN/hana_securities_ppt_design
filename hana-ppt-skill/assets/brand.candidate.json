@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "status": "candidate",
+  "warning": "Approximate values inferred from rendered references; not an official CI specification.",
+  "families": {
+    "hfg_ir": {
+      "canvas_aspect_ratio_observed": 1.444,
+      "colors": {
+        "deep_teal": "#006060",
+        "primary_green": "#009070",
+        "pale_mint": "#C0E0E0",
+        "alert_red": "#E02020",
+        "background": "#FFFFFF"
+      },
+      "effects": {"shadows": "restricted", "gradients": false, "animations": false}
+    }
+  },
+  "fonts": {
+    "heading_candidates": ["하나2.0 H", "하나2.0 B"],
+    "body_candidates": ["하나2.0 R", "하나2.0 M"],
+    "caption_candidates": ["하나2.0 L", "하나2.0 R"],
+    "manifest": "fonts/manifest.json"
+  },
+  "logo": {
+    "source": "logo/HanaSecurities_CI.ai",
+    "recolor": false,
+    "safe_area": null,
+    "status": "awaiting-ci-guide"
+  }
+}

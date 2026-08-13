@@ -6,6 +6,13 @@
     {"path": "fonts/windows/Hana2.0_TTF.zip", "size": 16227649, "sha256": "2855fc7c8e582d0886fac563de79183a214d87de504bec643a8b7697882aaeac"},
     {"path": "logo/HanaSecurities_CI.ai", "size": 379488, "sha256": "724d16256bca6064728399a3bc4805e8acd4461f38a6f2d0b0f4a181a5d33d34"},
     {"path": "reference-decks/hana-financial-group/1Q26_HFG_Presentation_KOR.pdf", "size": 1742291, "sha256": "36f647f441c65de30998d907eabb090fdeae839d3bffa8479d5b59da324581dc"},
-    {"path": "reference-decks/hana-financial-group/1H26_HFG_Presentation_KOR.pdf", "size": 2085919, "sha256": "97faad8ec6f40308f377d766c89b59520de1bffd558907aca2acb9cc4443700d"}
+    {"path": "reference-decks/hana-financial-group/1H26_HFG_Presentation_KOR.pdf", "size": 2085919, "sha256": "97faad8ec6f40308f377d766c89b59520de1bffd558907aca2acb9cc4443700d"},
+    {"path": "baselines/hfg-ir-affiliate-1q26.png", "size": 209712, "sha256": "32d418f809b06161848b674cf4e65010d78b272897662c64dddb64e19254cbb5"},
+    {"path": "baselines/hfg-ir-cover-1q26.png", "size": 682416, "sha256": "4a79c09760ad956c852c84e0590fe22164a559559c4f7f708b625a5ff9f744d8"},
+    {"path": "baselines/hfg-ir-data-1q26.png", "size": 236470, "sha256": "b97499f6600806c146c98775ba2d880235ac20f334e611b3c1f0658dca51665b"},
+    {"path": "baselines/hfg-ir-disclaimer-1q26.png", "size": 163714, "sha256": "d20ccd55c7f73a57003d8cab5c161a09d3e06746b76530ee06bd7621fc24e67a"},
+    {"path": "baselines/hfg-ir-highlights-1q26.png", "size": 265391, "sha256": "48d1c3dc35c7d63ed061344db06c3fdbb89f4ef94a8d89f9f58cb231354e1295"},
+    {"path": "baselines/hfg-ir-kpi-1h26.png", "size": 281129, "sha256": "834cba3209d043f221d84d24dfb1436dac87fa66a25e4d7a93c973d7d3d27fbc"},
+    {"path": "baselines/hfg-ir-section-1q26.png", "size": 319382, "sha256": "929a62da5ca7cc7654f69da3fc8bbac67b4208aef91e784ebf0d58b88d45240f"}
   ]
 }

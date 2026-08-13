@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "analyzed_at": "2026-08-13",
+  "method": ["pdf-rasterization", "contact-sheet-review", "representative-page-review", "cross-document-comparison"],
+  "documents": [
+    {"id": "hfg-1q26-kor", "pages": 25, "family": "hfg-ir", "coverage": "all-pages"},
+    {"id": "hfg-1h26-kor", "pages": 26, "family": "hfg-ir", "coverage": "all-pages"},
+    {"id": "hana-securities-2026-08-market-strategy", "pages": 34, "family": null, "coverage": "excluded-from-style-learning", "exclusion_reason": "User identified this document as an exceptional, non-representative case."}
+  ],
+  "baselines": [
+    {"path": "baselines/hfg-ir-cover-1q26.png", "source_id": "hfg-1q26-kor", "page": 1, "role": "cover"},
+    {"path": "baselines/hfg-ir-highlights-1q26.png", "source_id": "hfg-1q26-kor", "page": 2, "role": "executive-summary"},
+    {"path": "baselines/hfg-ir-section-1q26.png", "source_id": "hfg-1q26-kor", "page": 3, "role": "section-divider"},
+    {"path": "baselines/hfg-ir-data-1q26.png", "source_id": "hfg-1q26-kor", "page": 6, "role": "chart-table"},
+    {"path": "baselines/hfg-ir-affiliate-1q26.png", "source_id": "hfg-1q26-kor", "page": 14, "role": "affiliate-highlight"},
+    {"path": "baselines/hfg-ir-disclaimer-1q26.png", "source_id": "hfg-1q26-kor", "page": 24, "role": "disclaimer"},
+    {"path": "baselines/hfg-ir-kpi-1h26.png", "source_id": "hfg-1h26-kor", "page": 2, "role": "strategic-kpi"}
+  ],
+  "candidate_token_file": "brand.candidate.json",
+  "candidate_layout_file": "layouts.candidate.json"
+}

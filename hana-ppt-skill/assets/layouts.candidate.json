@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "candidate",
+  "selection_order": ["preserve-source-aspect-ratio", "document-family", "slide-type", "content-density", "visual-validation"],
+  "document_families": {
+    "hfg-ir": {
+      "types": ["cover", "strategic-kpi", "executive-summary", "section-divider", "chart", "table", "affiliate-highlight", "disclaimer", "closing"]
+    },
+    "other": {
+      "types": ["cover", "agenda", "section-divider", "executive-summary", "comparison", "timeline", "chart", "table", "disclaimer"]
+    }
+  },
+  "density_policy": {
+    "low": "single-message",
+    "medium": "two-to-four-modules",
+    "high": "split-slide-before-reducing-font-below-minimum"
+  },
+  "aspect_ratio_policy": "Preserve the input deck. Compare visual baselines only at matching aspect ratios."
+}

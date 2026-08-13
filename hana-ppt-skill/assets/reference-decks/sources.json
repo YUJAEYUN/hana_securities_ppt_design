@@ -26,7 +26,8 @@
       "title": "8월 주식시장 전망과 전략",
       "pages": 34,
       "source_url": "https://file.hanaw.com/download/research/FileServer/WEB/strategy/market/2026/07/31/lee_260803.pdf",
-      "use": ["hana-securities-brand-reference", "research-layout-reference"]
+      "style_status": "excluded-by-user",
+      "use": ["content-structure-reference-only"]
     }
   ]
 }
