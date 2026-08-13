@@ -46,7 +46,11 @@
   "schema_version": 1,
   "slide": {"width": null, "height": null},
   "colors": {"primary": null, "secondary": [], "neutral": [], "allowed_tolerance": 0},
-  "fonts": {"heading": null, "body": null, "fallbacks": []},
+  "fonts": {
+    "heading": {"family": null, "windows_files": [], "macos_files": []},
+    "body": {"family": null, "windows_files": [], "macos_files": []},
+    "fallbacks": []
+  },
   "typography": {"title_pt": null, "body_pt": null, "caption_pt": null},
   "margins": {"left": null, "right": null, "top": null, "bottom": null},
   "logo": {"path": null, "allowed_regions": [], "size_range": {}},
@@ -55,7 +59,7 @@
 }
 ```
 
-실제 값은 샘플 분석 후 확정한다. 분석 전 임의의 하나증권 색상이나 폰트를 넣지 않는다.
+실제 역할과 패밀리명은 샘플 분석 후 확정한다. OS별 파일 경로는 저장소에 추가된 CI/하나서체 원본과 대조한다. 분석 전 임의의 하나증권 색상이나 폰트명을 넣지 않는다.
 
 ## 테스트
 
@@ -71,4 +75,3 @@
 - `design-tokens.md`와 `brand.json`이 함께 생성된다.
 - 주요 값마다 빈도·출처·신뢰도 또는 검토 상태가 추적된다.
 - 사람이 검토한 최종 `brand.json`을 이후 단계의 정본으로 승인한다.
-
