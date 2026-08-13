@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-08-13",
+  "current_phase": "reference-analysis-candidate",
+  "summary": "스킬 메타데이터와 브랜드 자산은 준비 중이며, HFG IR 레퍼런스 기반 후보 토큰과 레이아웃만 존재한다. 하나증권 대표 스타일과 PPT 생성·검사 구현은 아직 완료되지 않았다.",
+  "phases": [
+    {
+      "id": "requirements",
+      "label": "요구사항과 설계 결정",
+      "status": "completed",
+      "evidence": ["docs/00-requirements-and-decisions.md"]
+    },
+    {
+      "id": "scaffold",
+      "label": "스킬 스켈레톤과 입력 자산",
+      "status": "in_progress",
+      "evidence": [
+        "hana-ppt-skill/SKILL.md",
+        "hana-ppt-skill/agents/openai.yaml",
+        "hana-ppt-skill/assets/fonts/manifest.json",
+        "hana-ppt-skill/assets/asset-manifest.json",
+        ".github/workflows/repository-harness.yml"
+      ],
+      "missing": ["requirements.txt", "PPT 처리 스크립트", "테스트"]
+    },
+    {
+      "id": "tokens",
+      "label": "브랜드 토큰 추출",
+      "status": "candidate",
+      "evidence": [
+        "hana-ppt-skill/assets/brand.candidate.json",
+        "hana-ppt-skill/references/design-tokens.md"
+      ],
+      "missing": ["대표 하나증권 레퍼런스", "사람 승인", "assets/brand.json", "extract_tokens.py"]
+    },
+    {
+      "id": "layouts",
+      "label": "레이아웃 패턴",
+      "status": "candidate",
+      "evidence": [
+        "hana-ppt-skill/assets/layouts.candidate.json",
+        "hana-ppt-skill/references/hfg-ir-patterns.md",
+        "hana-ppt-skill/references/layout-patterns.md"
+      ],
+      "missing": ["하나증권 대표 레이아웃", "사람 승인"]
+    },
+    {
+      "id": "builder",
+      "label": "PPT 인수·후처리·생성",
+      "status": "not_started",
+      "evidence": [],
+      "missing": ["ingest_deck.py", "restyle_deck.py", "build_deck.py", "deck_spec 스키마"]
+    },
+    {
+      "id": "quality",
+      "label": "구조·렌더·시각 품질 검사",
+      "status": "in_progress",
+      "evidence": ["hana-ppt-skill/assets/baselines"],
+      "missing": ["quality_check.py", "render_slides.py", "visual_check.py", "테스트"]
+    },
+    {
+      "id": "delivery",
+      "label": "호환성 검증과 배포",
+      "status": "not_started",
+      "evidence": [],
+      "missing": ["Windows/macOS 검증", "폰트 임베딩 검증", "샘플 산출물"]
+    }
+  ],
+  "references": {
+    "style_learning": ["hfg-1q26-kor", "hfg-1h26-kor"],
+    "excluded_from_style_learning": ["hana-securities-2026-08-market-strategy"],
+    "warning": "현재 디자인 후보는 하나금융그룹 IR 자료에만 근거한다. 하나증권 대표 스타일로 승인하거나 일반화하지 않는다."
+  },
+  "next_actions": [
+    "대표성이 확인된 하나증권 PPTX 또는 PDF를 추가한다.",
+    "CI Illustrator 원본을 SVG 또는 고해상도 PNG로 변환하고 보호영역을 확정한다.",
+    "PPT 인수·후처리 최소 스크립트와 테스트를 구현한다.",
+    "후보 토큰을 사람 검수한 뒤 assets/brand.json으로 승격한다."
+  ]
+}

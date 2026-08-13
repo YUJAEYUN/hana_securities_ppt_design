@@ -1,0 +1,29 @@
+name: 저장소 상태 동기화 검사
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 상태 문서 재생성
+        run: python tools/task_harness.py sync
+
+      - name: 생성 문서 드리프트 검사
+        run: git diff --exit-code -- docs/STATUS.md
+
+      - name: 상태·자산·스킬 구조 검사
+        run: python tools/task_harness.py check

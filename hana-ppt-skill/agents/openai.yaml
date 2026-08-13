@@ -1,0 +1,7 @@
+interface:
+  display_name: "하나증권 PPT 후처리"
+  short_description: "하나증권 PPT 디자인 자산·규칙·변환 워크플로 관리"
+  default_prompt: "Use $hana-ppt-skill to inspect the current project state and perform the requested Hana PPT maintenance or transformation work without promoting candidate rules to approved brand rules."
+
+policy:
+  allow_implicit_invocation: true
