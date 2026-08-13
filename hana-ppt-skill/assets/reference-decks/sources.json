@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "documents": [
+    {
+      "id": "hfg-1q26-kor",
+      "organization": "하나금융그룹",
+      "kind": "group-presentation",
+      "local_path": "hana-financial-group/1Q26_HFG_Presentation_KOR.pdf",
+      "pages": 25,
+      "source": "user-provided",
+      "use": ["group-brand-reference", "layout-reference"]
+    },
+    {
+      "id": "hfg-1h26-kor",
+      "organization": "하나금융그룹",
+      "kind": "group-presentation",
+      "local_path": "hana-financial-group/1H26_HFG_Presentation_KOR.pdf",
+      "pages": 26,
+      "source": "user-provided",
+      "use": ["group-brand-reference", "layout-reference"]
+    },
+    {
+      "id": "hana-securities-2026-08-market-strategy",
+      "organization": "하나증권 리서치센터",
+      "kind": "research-presentation",
+      "title": "8월 주식시장 전망과 전략",
+      "pages": 34,
+      "source_url": "https://file.hanaw.com/download/research/FileServer/WEB/strategy/market/2026/07/31/lee_260803.pdf",
+      "use": ["hana-securities-brand-reference", "research-layout-reference"]
+    }
+  ]
+}

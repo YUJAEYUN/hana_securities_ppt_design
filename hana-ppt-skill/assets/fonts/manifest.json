@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "family_group": "하나2.0",
+  "embedding": {
+    "fs_type": "0x0008",
+    "permission": "editable",
+    "subsetting_allowed": true
+  },
+  "extraction": {
+    "strategy": "selected-members-only",
+    "destination": "work-cache",
+    "install_to_system": false,
+    "reuse_requires_hash_match": true
+  },
+  "styles": [
+    {
+      "role": "bold",
+      "family": "하나2.0 B",
+      "windows": {"archive": "windows/Hana2.0_TTF.zip", "member": "Hana2-Bold.ttf"},
+      "macos": {"archive": "macos/Hana2.0_OTF.zip", "member": "Hana2-Bold.otf"}
+    },
+    {
+      "role": "cm",
+      "family": "하나2.0 CM",
+      "windows": {"archive": "windows/Hana2.0_TTF.zip", "member": "Hana2-CM.ttf"},
+      "macos": {"archive": "macos/Hana2.0_OTF.zip", "member": "Hana2-CM.otf"}
+    },
+    {
+      "role": "heavy",
+      "family": "하나2.0 H",
+      "windows": {"archive": "windows/Hana2.0_TTF.zip", "member": "Hana2-Heavy.ttf"},
+      "macos": {"archive": "macos/Hana2.0_OTF.zip", "member": "Hana2-Heavy.otf"}
+    },
+    {
+      "role": "light",
+      "family": "하나2.0 L",
+      "windows": {"archive": "windows/Hana2.0_TTF.zip", "member": "Hana2-Light.ttf"},
+      "macos": {"archive": "macos/Hana2.0_OTF.zip", "member": "Hana2-Light.otf"}
+    },
+    {
+      "role": "medium",
+      "family": "하나2.0 M",
+      "windows": {"archive": "windows/Hana2.0_TTF.zip", "member": "Hana2-Medium.ttf"},
+      "macos": {"archive": "macos/Hana2.0_OTF.zip", "member": "Hana2-Medium.otf"}
+    },
+    {
+      "role": "regular",
+      "family": "하나2.0 R",
+      "windows": {"archive": "windows/Hana2.0_TTF.zip", "member": "Hana2-Regular.ttf"},
+      "macos": {"archive": "macos/Hana2.0_OTF.zip", "member": "Hana2-Regular.otf"}
+    }
+  ]
+}

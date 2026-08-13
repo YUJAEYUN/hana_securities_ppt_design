@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "source": "user-provided",
+  "assets": [
+    {"path": "fonts/macos/Hana2.0_OTF.zip", "size": 6864444, "sha256": "7ecac0cc47d9db1330a5ab2b81f537805ce60a530d3e5961d19cada7896d4021"},
+    {"path": "fonts/windows/Hana2.0_TTF.zip", "size": 16227649, "sha256": "2855fc7c8e582d0886fac563de79183a214d87de504bec643a8b7697882aaeac"},
+    {"path": "logo/HanaSecurities_CI.ai", "size": 379488, "sha256": "724d16256bca6064728399a3bc4805e8acd4461f38a6f2d0b0f4a181a5d33d34"},
+    {"path": "reference-decks/hana-financial-group/1Q26_HFG_Presentation_KOR.pdf", "size": 1742291, "sha256": "36f647f441c65de30998d907eabb090fdeae839d3bffa8479d5b59da324581dc"},
+    {"path": "reference-decks/hana-financial-group/1H26_HFG_Presentation_KOR.pdf", "size": 2085919, "sha256": "97faad8ec6f40308f377d766c89b59520de1bffd558907aca2acb9cc4443700d"}
+  ]
+}
