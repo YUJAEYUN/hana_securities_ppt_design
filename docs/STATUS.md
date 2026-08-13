@@ -10,8 +10,8 @@
 
 | 단계 | 상태 | 근거 | 남은 항목 |
 |---|---|---|---|
-| 요구사항과 설계 결정 | 완료 | `docs/00-requirements-and-decisions.md` | - |
-| 스킬 스켈레톤과 입력 자산 | 진행 중 | `hana-ppt-skill/SKILL.md`<br>`hana-ppt-skill/agents/openai.yaml`<br>`hana-ppt-skill/assets/fonts/manifest.json`<br>`hana-ppt-skill/assets/asset-manifest.json`<br>`.github/workflows/repository-harness.yml` | requirements.txt<br>PPT 처리 스크립트<br>테스트 |
+| 요구사항과 설계 결정 | 완료 | `docs/PRODUCT.md`<br>`docs/ARCHITECTURE.md`<br>`docs/ROADMAP.md` | - |
+| 스킬 스켈레톤과 입력 자산 | 진행 중 | `hana-ppt-skill/SKILL.md`<br>`hana-ppt-skill/agents/openai.yaml`<br>`hana-ppt-skill/assets/fonts/manifest.json`<br>`hana-ppt-skill/assets/asset-manifest.json`<br>`.github/workflows/repository-harness.yml`<br>`README.md` | requirements.txt<br>PPT 처리 스크립트<br>테스트 |
 | 브랜드 토큰 추출 | 후보 완료 | `hana-ppt-skill/assets/brand.candidate.json`<br>`hana-ppt-skill/references/design-tokens.md` | 대표 하나증권 레퍼런스<br>사람 승인<br>assets/brand.json<br>extract_tokens.py |
 | 레이아웃 패턴 | 후보 완료 | `hana-ppt-skill/assets/layouts.candidate.json`<br>`hana-ppt-skill/references/hfg-ir-patterns.md`<br>`hana-ppt-skill/references/layout-patterns.md` | 하나증권 대표 레이아웃<br>사람 승인 |
 | PPT 인수·후처리·생성 | 미착수 | - | ingest_deck.py<br>restyle_deck.py<br>build_deck.py<br>deck_spec 스키마 |

@@ -8,7 +8,7 @@
       "id": "requirements",
       "label": "요구사항과 설계 결정",
       "status": "completed",
-      "evidence": ["docs/00-requirements-and-decisions.md"]
+      "evidence": ["docs/PRODUCT.md", "docs/ARCHITECTURE.md", "docs/ROADMAP.md"]
     },
     {
       "id": "scaffold",
@@ -19,7 +19,8 @@
         "hana-ppt-skill/agents/openai.yaml",
         "hana-ppt-skill/assets/fonts/manifest.json",
         "hana-ppt-skill/assets/asset-manifest.json",
-        ".github/workflows/repository-harness.yml"
+        ".github/workflows/repository-harness.yml",
+        "README.md"
       ],
       "missing": ["requirements.txt", "PPT 처리 스크립트", "테스트"]
     },

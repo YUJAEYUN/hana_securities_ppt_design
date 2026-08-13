@@ -20,6 +20,24 @@ STATE_PATH = REPO_ROOT / "project-state.json"
 STATUS_PATH = REPO_ROOT / "docs" / "STATUS.md"
 ASSETS_ROOT = SKILL_ROOT / "assets"
 HARNESS_STATE_PATH = REPO_ROOT / ".git" / "hana-task-harness.json"
+REQUIRED_TOP_DOWN_DOCS = {
+    "README.md",
+    "docs/ARCHITECTURE.md",
+    "docs/PRODUCT.md",
+    "docs/ROADMAP.md",
+    "docs/STATUS.md",
+    "docs/architecture.svg",
+}
+LEGACY_FRAGMENTED_DOCS = {
+    "docs/README.md",
+    "docs/00-requirements-and-decisions.md",
+    "docs/01-scaffold-and-inputs.md",
+    "docs/02-token-extraction.md",
+    "docs/03-layout-patterns.md",
+    "docs/04-skill-and-deck-builder.md",
+    "docs/05-quality-and-iteration.md",
+    "docs/06-compatibility-and-delivery.md",
+}
 
 
 def load_json(path: Path) -> Any:
@@ -99,6 +117,17 @@ def validate_state() -> list[str]:
     return errors
 
 
+def validate_document_structure() -> list[str]:
+    errors: list[str] = []
+    for path in sorted(REQUIRED_TOP_DOWN_DOCS):
+        if not (REPO_ROOT / path).is_file():
+            errors.append(f"필수 탑다운 문서가 없습니다: {path}")
+    for path in sorted(LEGACY_FRAGMENTED_DOCS):
+        if (REPO_ROOT / path).exists():
+            errors.append(f"통합 후 제거해야 할 구형 문서가 남아 있습니다: {path}")
+    return errors
+
+
 def validate_assets() -> list[str]:
     errors: list[str] = []
     manifest = load_json(ASSETS_ROOT / "asset-manifest.json")
@@ -152,7 +181,7 @@ def validate_skill() -> list[str]:
 
 
 def run_check() -> None:
-    errors = validate_state() + validate_assets() + validate_skill()
+    errors = validate_document_structure() + validate_state() + validate_assets() + validate_skill()
     if errors:
         for error in errors:
             print(f"오류: {error}", file=sys.stderr)

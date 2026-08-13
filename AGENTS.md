@@ -2,7 +2,7 @@
 
 이 저장소에서 파일을 변경하는 모든 에이전트는 다음 절차를 따른다.
 
-1. 작업 시작 전에 `project-state.json`, `docs/STATUS.md`, 관련 설계 문서를 읽고 깨끗한 Git 트리에서 다음 명령을 실행한다.
+1. 작업 시작 전에 `README.md` → `docs/ARCHITECTURE.md` → `project-state.json` → `docs/STATUS.md` 순서로 읽고, 관련 변경이면 `docs/PRODUCT.md` 또는 `docs/ROADMAP.md`를 추가로 읽는다. 깨끗한 Git 트리에서 다음 명령을 실행한다.
 
 ```text
 python tools/task_harness.py begin
