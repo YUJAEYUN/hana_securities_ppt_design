@@ -137,8 +137,6 @@ def validate_document_structure() -> list[str]:
         control = next((char for char in text if ord(char) < 32 and char not in "\n\r\t"), None)
         if control is not None:
             errors.append(f"제어 문자가 포함된 문서: {relative(path)} (U+{ord(control):04X})")
-        if path.suffix == ".md" and re.search(r"<\/?(?:svg|rect|text|line)\b", text, re.IGNORECASE):
-            errors.append(f"Markdown에 SVG 요소가 비정상적으로 포함됨: {relative(path)}")
     return errors
 
 

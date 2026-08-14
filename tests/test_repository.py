@@ -35,6 +35,15 @@ class DocumentValidationTests(unittest.TestCase):
         finally:
             target.unlink()
 
+    def test_inline_svg_is_allowed_in_markdown(self):
+        target = ROOT / "tests" / "temporary-inline-svg.md"
+        target.write_text('<svg aria-label="diagram"><text>valid</text></svg>\n', encoding="utf-8")
+        try:
+            errors = HARNESS.validate_document_structure()
+            self.assertFalse(any("temporary-inline-svg.md" in error for error in errors))
+        finally:
+            target.unlink()
+
 
 class IngestDeckTests(unittest.TestCase):
     def _fixture(self, path: Path) -> None:
