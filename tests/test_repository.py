@@ -35,6 +35,15 @@ class DocumentValidationTests(unittest.TestCase):
         finally:
             target.unlink()
 
+    def test_approved_brand_has_traceable_non_excluded_sources(self):
+        brand = json.loads((ROOT / "hana-ppt-skill" / "assets" / "brand.json").read_text())
+        sources = json.loads((ROOT / "hana-ppt-skill" / "assets" / "reference-decks" / "sources.json").read_text())
+        excluded = {item["id"] for item in sources["documents"] if item.get("style_status") == "excluded-by-user"}
+        self.assertEqual("approved", brand["status"])
+        self.assertTrue(brand["approval"]["record"])
+        self.assertFalse(set(brand["provenance"]["source_ids"]) & excluded)
+        self.assertFalse(brand["official_ci_specification"])
+
     def test_inline_svg_is_allowed_in_markdown(self):
         target = ROOT / "tests" / "temporary-inline-svg.md"
         target.write_text('<svg aria-label="diagram"><text>valid</text></svg>\n', encoding="utf-8")

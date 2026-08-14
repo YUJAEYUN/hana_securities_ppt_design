@@ -177,6 +177,21 @@ def validate_assets() -> list[str]:
     used_sources = {item["source_id"] for item in analysis["baselines"]}
     if excluded & used_sources:
         errors.append(f"제외 레퍼런스가 기준 이미지에 포함됨: {sorted(excluded & used_sources)}")
+    brand_path = ASSETS_ROOT / "brand.json"
+    if brand_path.is_file():
+        brand = load_json(brand_path)
+        source_ids = {item["id"] for item in sources["documents"]}
+        approved_sources = set(brand.get("provenance", {}).get("source_ids", []))
+        if brand.get("status") != "approved":
+            errors.append("brand.json의 status는 approved여야 합니다.")
+        if not brand.get("approval", {}).get("record"):
+            errors.append("brand.json에 사람 승인 기록이 없습니다.")
+        if approved_sources - source_ids:
+            errors.append(f"brand.json의 미등록 출처: {sorted(approved_sources - source_ids)}")
+        if approved_sources & excluded:
+            errors.append(f"brand.json이 제외 레퍼런스를 사용함: {sorted(approved_sources & excluded)}")
+        if brand.get("logo", {}).get("safe_area") is None and brand.get("logo", {}).get("placement_status") != "blocked-until-ci-guide":
+            errors.append("로고 보호영역이 없으면 자동 배치를 차단해야 합니다.")
     return errors
 
 

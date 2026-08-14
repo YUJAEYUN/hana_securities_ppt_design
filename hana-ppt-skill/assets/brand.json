@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "status": "approved",
+  "name": "하나증권 운영 브랜드 프로필 (HFG IR 기반)",
+  "scope": "hana-securities-presentation-operational-profile",
+  "official_ci_specification": false,
+  "approved_at": "2026-08-14",
+  "approval": {
+    "actor": "user",
+    "record": "대화에서 현재 로컬에 등록된 HFG IR 레퍼런스를 기준으로 계속 사용하도록 승인",
+    "limitations_acknowledged": [
+      "하나증권 IR 원본이 아닌 하나금융그룹 IR PDF에서 관찰한 규칙이다.",
+      "색상은 공식 CI 수치가 아니라 PDF 렌더 결과의 반복 관찰값이다.",
+      "로고 보호영역은 확정되지 않아 자동 배치에 사용할 수 없다."
+    ]
+  },
+  "provenance": {
+    "method": "두 기간 HFG IR PDF와 등록된 기준 이미지의 반복 패턴을 재검토하고 사용자 승인 범위로 확정",
+    "source_ids": ["hfg-1q26-kor", "hfg-1h26-kor"],
+    "excluded_source_ids": ["hana-securities-2026-08-market-strategy"],
+    "candidate_input": "brand.candidate.json",
+    "analysis": "reference-analysis.json"
+  },
+  "canvas": {
+    "aspect_ratio": 1.444,
+    "policy": "입력 화면비를 우선 보존하고, 신규 생성 시에만 관찰된 HFG IR 화면비를 사용한다.",
+    "confidence": "observed"
+  },
+  "colors": {
+    "deep_teal": {"value": "#006060", "role": ["title", "table-header", "key-rule"], "confidence": "approved-estimate"},
+    "primary_green": {"value": "#009070", "role": ["kpi", "active-data", "chart-primary"], "confidence": "approved-estimate"},
+    "pale_mint": {"value": "#C0E0E0", "role": ["chart-secondary", "divider", "subtle-fill"], "confidence": "approved-estimate"},
+    "alert_red": {"value": "#E02020", "role": ["exception", "negative-change", "limited-emphasis"], "confidence": "approved-estimate"},
+    "background": {"value": "#FFFFFF", "role": ["slide-background"], "confidence": "observed"}
+  },
+  "typography": {
+    "heading": {"families": ["하나2.0 H", "하나2.0 B"], "fallback": "sans-serif"},
+    "body": {"families": ["하나2.0 R", "하나2.0 M"], "fallback": "sans-serif"},
+    "caption": {"families": ["하나2.0 L", "하나2.0 R"], "fallback": "sans-serif"},
+    "manifest": "fonts/manifest.json"
+  },
+  "effects": {
+    "shadows": "기본 비활성; KPI 원과 코멘트 카드에만 약하게 허용",
+    "gradients": false,
+    "animations": false,
+    "lines": "얇고 평면적인 구분선을 우선"
+  },
+  "charts_and_tables": {
+    "series_order": ["primary_green", "deep_teal", "pale_mint", "alert_red"],
+    "table_header": "deep_teal",
+    "table_body": "background",
+    "warning_color": "alert_red",
+    "policy": "원 데이터와 계열 순서는 잠그고 의미가 바뀌지 않는 범위에서만 색을 적용"
+  },
+  "logo": {
+    "source": "logo/HanaSecurities_CI.ai",
+    "recolor": false,
+    "safe_area": null,
+    "placement_status": "blocked-until-ci-guide",
+    "policy": "보호영역이 확정될 때까지 기존 로고의 위치·크기를 보존하고 신규 자동 배치하지 않는다."
+  }
+}

@@ -30,7 +30,7 @@ Codex가 어떤 자료를 읽고 어떤 기능을 실행할 수 있는지 결정
 
 ## 3. PPT 처리 계층
 
-`ingest_deck.py`와 `deck_spec` JSON Schema까지 MVP로 구현됐습니다. 스타일 적용·생성·폰트 처리는 예정 상태입니다.
+`ingest_deck.py`와 `deck_spec` JSON Schema까지 MVP로 구현됐습니다. 사용자 승인된 운영 `brand.json`은 마련됐지만 스타일 적용·생성·폰트 처리는 예정 상태입니다.
 
 ```text
 초안 PPTX 또는 구조화된 초안
