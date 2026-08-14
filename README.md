@@ -4,7 +4,7 @@
 
 외부 에이전트나 범용 PPT 도구가 만든 초안을 하나증권식 말투·구조·디자인으로 다듬고, 렌더링 결과까지 검사하기 위한 후처리 스킬 저장소입니다.
 
-> 현재 단계: 스킬 등록과 HFG IR 기반 후보 규칙까지 준비됐습니다. 승인된 하나증권 브랜드 규칙과 실제 PPT 변환 엔진은 아직 구현되지 않았습니다.
+> 현재 단계: PPTX 내용을 `deck_spec.json`으로 인수하는 MVP가 있습니다. HFG IR 기반 후보 규칙은 있지만 승인된 하나증권 브랜드 규칙과 PPT 후처리·렌더 엔진은 아직 구현되지 않았습니다.
 
 ## 전체 구조
 
@@ -35,11 +35,23 @@
 ├── hana-ppt-skill/
 │   ├── SKILL.md              Codex가 읽는 실행 지침
 │   ├── agents/openai.yaml    스킬 표시·호출 메타데이터
+│   ├── schemas/              deck_spec JSON Schema
+│   ├── scripts/              PPTX 인수 및 향후 처리 스크립트
 │   ├── references/           디자인 분석과 레이아웃 규칙
 │   └── assets/               폰트·CI·레퍼런스·후보 토큰
 ├── tools/task_harness.py     동기화·검증·설치·커밋·푸시
 └── .github/workflows/        원격 상태 동기화 검사
 ```
+
+## PPTX 인수 MVP
+
+승인 브랜드 없이도 원본을 변경하지 않는 구조 인벤토리는 생성할 수 있습니다.
+
+```bash
+python hana-ppt-skill/scripts/ingest_deck.py input.pptx -o deck_spec.json
+```
+
+현재는 슬라이드 순서, 텍스트, 표, 이미지·그래픽 인벤토리를 수집하고 OLE·임베디드 패키지·확장 XML은 손실 가능성 경고로 남깁니다. 이 명령은 디자인을 변경하지 않습니다.
 
 ## 문서 읽는 순서
 

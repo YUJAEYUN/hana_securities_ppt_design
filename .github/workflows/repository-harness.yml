@@ -27,3 +27,6 @@ jobs:
 
       - name: 상태·자산·스킬 구조 검사
         run: python tools/task_harness.py check
+
+      - name: 단위 테스트
+        run: python -m unittest discover -s tests -v

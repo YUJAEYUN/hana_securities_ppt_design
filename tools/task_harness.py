@@ -28,6 +28,7 @@ REQUIRED_TOP_DOWN_DOCS = {
     "docs/STATUS.md",
     "docs/architecture.svg",
 }
+TEXT_DOCUMENT_SUFFIXES = {".md", ".json", ".py", ".yaml", ".yml"}
 LEGACY_FRAGMENTED_DOCS = {
     "docs/README.md",
     "docs/00-requirements-and-decisions.md",
@@ -125,6 +126,17 @@ def validate_document_structure() -> list[str]:
     for path in sorted(LEGACY_FRAGMENTED_DOCS):
         if (REPO_ROOT / path).exists():
             errors.append(f"통합 후 제거해야 할 구형 문서가 남아 있습니다: {path}")
+    for path in REPO_ROOT.rglob("*"):
+        if not path.is_file() or ".git" in path.parts or path.suffix not in TEXT_DOCUMENT_SUFFIXES:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            errors.append(f"UTF-8로 읽을 수 없는 문서: {relative(path)}")
+            continue
+        control = next((char for char in text if ord(char) < 32 and char not in "\n\r\t"), None)
+        if control is not None:
+            errors.append(f"제어 문자가 포함된 문서: {relative(path)} (U+{ord(control):04X})")
     return errors
 
 

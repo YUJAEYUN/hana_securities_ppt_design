@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/hana-ppt-skill/deck_spec.schema.json",
+  "title": "Hana PPT deck specification",
+  "type": "object",
+  "required": ["schema_version", "source", "slides", "warnings"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "source": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["number", "part", "elements", "warnings"],
+        "properties": {
+          "number": {"type": "integer", "minimum": 1},
+          "part": {"type": "string"},
+          "elements": {"type": "array", "items": {"type": "object"}},
+          "warnings": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "warnings": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}
