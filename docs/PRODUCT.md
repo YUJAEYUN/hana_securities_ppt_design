@@ -74,29 +74,5 @@
 
 - HFG 후보 색상을 하나증권 공식 CI 색상으로 표현하지 않습니다.
 - 제외된 리서치 자료를 기준 이미지나 스타일 학습에 다시 넣지 않습니다.
-- PPT 처리 스크립트가 없는데 변환 ۿy����k�w��monospace">sync · check · install · commit · push</text>
-
-  <rect x="160" y="252" width="640" height="92" rx="8" fill="#fff" stroke="#2d3142" stroke-width="1.2"/>
-  <rect x="176" y="264" width="64" height="16" rx="2" fill="none" stroke="rgba(45,49,66,0.3)"/>
-  <text x="208" y="276" text-anchor="middle" fill="#4f5d75" font-size="8" font-family="Arial, sans-serif">SKILL</text>
-  <text x="480" y="284" text-anchor="middle" fill="#2d3142" font-size="16" font-weight="600" font-family="Arial, 'Noto Sans KR', sans-serif">hana-ppt-skill</text>
-  <text x="480" y="308" text-anchor="middle" fill="#4f5d75" font-size="12" font-family="Arial, 'Noto Sans KR', sans-serif">SKILL.md가 요청을 분기하고 references와 assets에서 근거를 선택</text>
-  <text x="480" y="328" text-anchor="middle" fill="#7a8399" font-size="9" font-family="Consolas, monospace">후보 규칙 ≠ 승인된 하나증권 브랜드</text>
-
-  <rect x="160" y="380" width="640" height="92" rx="8" fill="rgba(235,108,54,0.05)" stroke="rgba(235,108,54,0.55)" stroke-dasharray="4 4"/>
-  <rect x="176" y="392" width="88" height="16" rx="2" fill="#f5f5f5"/>
-  <text x="220" y="404" text-anchor="middle" fill="#eb6c36" font-size="8" font-family="Arial, sans-serif">PLANNED</text>
-  <text x="480" y="412" text-anchor="middle" fill="#2d3142" font-size="16" font-weight="600" font-family="Arial, 'Noto Sans KR', sans-serif">PPT 처리 엔진</text>
-  <text x="480" y="436" text-anchor="middle" fill="#4f5d75" font-size="12" font-family="Arial, 'Noto Sans KR', sans-serif">초안 인수 → deck_spec → 스타일 적용 → 폰트 처리 → 산출물</text>
-  <text x="480" y="456" text-anchor="middle" fill="#7a8399" font-size="9" font-family="Consolas, monospace">ingest · restyle · build · embed</text>
-
-  <rect x="40" y="508" width="880" height="64" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.12)"/>
-  <rect x="72" y="520" width="248" height="40" rx="6" fill="#fff" stroke="#4f5d75"/>
-  <text x="196" y="544" text-anchor="middle" fill="#2d3142" font-size="12" font-weight="600" font-family="Arial, 'Noto Sans KR', sans-serif">구조·렌더·시각 품질 검사</text>
-  <rect x="356" y="520" width="248" height="40" rx="6" fill="#fff" stroke="#4f5d75"/>
-  <text x="480" y="544" text-anchor="middle" fill="#2d3142" font-size="12" font-weight="600" font-family="Arial, 'Noto Sans KR', sans-serif">PPTX · PDF · PNG</text>
-  <rect x="640" y="520" width="248" height="40" rx="6" fill="rgba(79,93,117,0.08)" stroke="#4f5d75"/>
-  <text x="764" y="544" text-anchor="middle" fill="#2d3142" font-size="12" font-weight="600" font-family="Arial, 'Noto Sans KR', sans-serif">GitHub Actions · 배포</text>
-  <line x1="40" y1="584" x2="920" y2="584" stroke="rgba(45,49,66,0.12)"/>
-  <text x="40" y="596" fill="#7a8399" font-size="8" font-family="Consolas, monospace">SOLID = CURRENT · DASHED = PLANNED · 2026-08-13</text>
+- 승인된 `brand.json`과 실행 스크립트가 없는데 하나증권 스타일 변환이 가능하다고 주장하지 않습니다.
 </svg>

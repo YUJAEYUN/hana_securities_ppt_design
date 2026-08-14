@@ -17,7 +17,8 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 - 레퍼런스 분석: `references/reference-analysis.md`와 관련 문서군 패턴만 읽는다.
 - 색상·서체·로고: `references/design-tokens.md`, 폰트 manifest와 CI 자산을 읽는다.
 - 레이아웃: `references/layout-patterns.md`와 해당 문서군 패턴을 읽는다.
-- PPT 변환: 승인된 `brand.json`과 실행 스크립트가 모두 있을 때만 실행한다. 없으면 현재 미구현 또는 승인 대기 항목을 정확히 보고한다.
+- PPT 인수: `scripts/ingest_deck.py`로 원본을 변경하지 않고 `deck_spec.json` 인벤토리를 생성한다. 미지원 요소 경고를 손실 없는 변환 성공으로 간주하지 않는다.
+- PPT 후처리: 승인된 `brand.json`과 후처리 실행 스크립트가 모두 있을 때만 실행한다. 없으면 현재 미구현 또는 승인 대기 항목을 정확히 보고한다.
 - 품질 검사: 기준 이미지 전체 픽셀 일치가 아니라 화면비, 고정 요소, 경계, 정렬, 밀도와 색상 분포를 비교한다.
 
 ## 변경 원칙
