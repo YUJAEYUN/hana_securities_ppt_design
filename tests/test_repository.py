@@ -44,6 +44,17 @@ class DocumentValidationTests(unittest.TestCase):
         self.assertFalse(set(brand["provenance"]["source_ids"]) & excluded)
         self.assertFalse(brand["official_ci_specification"])
 
+    def test_voice_profile_is_scoped_and_preserves_content_by_mode(self):
+        voice = json.loads((ROOT / "hana-ppt-skill" / "assets" / "voice.json").read_text())
+        sources = json.loads((ROOT / "hana-ppt-skill" / "assets" / "reference-decks" / "sources.json").read_text())
+        excluded = {item["id"] for item in sources["documents"] if item.get("style_status") == "excluded-by-user"}
+        self.assertEqual("approved", voice["status"])
+        self.assertFalse(voice["official_hana_securities_voice"])
+        self.assertFalse(set(voice["provenance"]["source_ids"]) & excluded)
+        self.assertIn("원문", voice["mode_policy"]["restyle-only"])
+        self.assertIn("새 사실", voice["mode_policy"]["hana-refine"])
+        self.assertTrue(voice["roles"]["disclaimer"]["must_preserve_verbatim_in_restyle_only"])
+
     def test_inline_svg_is_allowed_in_markdown(self):
         target = ROOT / "tests" / "temporary-inline-svg.md"
         target.write_text('<svg aria-label="diagram"><text>valid</text></svg>\n', encoding="utf-8")

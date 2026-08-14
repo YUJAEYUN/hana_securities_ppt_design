@@ -4,7 +4,7 @@
 
 - 갱신일: `2026-08-14`
 - 현재 단계: `brand-profile-approved`
-- 요약: 사용자가 로컬 HFG IR 2건을 하나증권 프레젠테이션의 운영 기준으로 승인했다. 출처·한계를 명시한 brand.json을 확정했으며, 하나증권 공식 CI 규격으로 주장하지 않는다. PPT 후처리·생성·렌더 구현은 남아 있다.
+- 요약: 로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json과 voice.json을 확정했다. 하나증권 공식 CI·공식 문체로 주장하지 않으며, PPT 후처리·생성·렌더 구현은 남아 있다.
 
 ## 단계별 상태
 
@@ -14,6 +14,7 @@
 | 스킬 스켈레톤과 입력 자산 | 완료 | `hana-ppt-skill/SKILL.md`<br>`hana-ppt-skill/agents/openai.yaml`<br>`hana-ppt-skill/assets/fonts/manifest.json`<br>`hana-ppt-skill/assets/asset-manifest.json`<br>`.github/workflows/repository-harness.yml`<br>`README.md`<br>`requirements.txt`<br>`tests/test_repository.py` | - |
 | 브랜드 토큰 추출 | 완료 | `hana-ppt-skill/assets/brand.json`<br>`hana-ppt-skill/assets/brand.candidate.json`<br>`hana-ppt-skill/references/design-tokens.md` | - |
 | 레이아웃 패턴 | 후보 완료 | `hana-ppt-skill/assets/layouts.candidate.json`<br>`hana-ppt-skill/references/hfg-ir-patterns.md`<br>`hana-ppt-skill/references/layout-patterns.md` | 하나증권 대표 레이아웃<br>사람 승인 |
+| 문체와 말투 규칙 | 완료 | `hana-ppt-skill/assets/voice.json`<br>`hana-ppt-skill/references/voice-and-tone.md`<br>`hana-ppt-skill/assets/reference-analysis.json` | - |
 | PPT 인수·후처리·생성 | 진행 중 | `hana-ppt-skill/scripts/ingest_deck.py`<br>`hana-ppt-skill/schemas/deck_spec.schema.json`<br>`tests/test_repository.py` | restyle_deck.py<br>build_deck.py<br>차트·SmartArt 상세 인수<br>실제 PPTX 회귀 픽스처 |
 | 구조·렌더·시각 품질 검사 | 진행 중 | `hana-ppt-skill/assets/baselines` | quality_check.py<br>render_slides.py<br>visual_check.py<br>테스트 |
 | 호환성 검증과 배포 | 미착수 | - | Windows/macOS 검증<br>폰트 임베딩 검증<br>샘플 산출물 |
@@ -26,7 +27,7 @@
 
 ## 다음 작업
 
-1. 승인된 운영 브랜드 프로필을 사용하는 restyle_deck.py와 build_deck.py를 구현한다.
+1. 승인된 운영 브랜드·문체 프로필을 사용하는 restyle_deck.py와 build_deck.py를 구현한다.
 2. 실제 PPTX 회귀 픽스처로 인수 MVP의 차트·SmartArt 경고와 손실 보고를 보강한다.
 3. CI 가이드를 확보하면 로고 보호영역과 공식 색상 수치만 별도 재검수한다.
 4. PowerPoint/LibreOffice 렌더와 구조·시각 품질 검사를 구현한다.

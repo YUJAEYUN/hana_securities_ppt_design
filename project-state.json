@@ -2,7 +2,7 @@
   "schema_version": 1,
   "updated_at": "2026-08-14",
   "current_phase": "brand-profile-approved",
-  "summary": "사용자가 로컬 HFG IR 2건을 하나증권 프레젠테이션의 운영 기준으로 승인했다. 출처·한계를 명시한 brand.json을 확정했으며, 하나증권 공식 CI 규격으로 주장하지 않는다. PPT 후처리·생성·렌더 구현은 남아 있다.",
+  "summary": "로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json과 voice.json을 확정했다. 하나증권 공식 CI·공식 문체로 주장하지 않으며, PPT 후처리·생성·렌더 구현은 남아 있다.",
   "phases": [
     {
       "id": "requirements",
@@ -54,6 +54,17 @@
         "하나증권 대표 레이아웃",
         "사람 승인"
       ]
+    },
+    {
+      "id": "voice",
+      "label": "문체와 말투 규칙",
+      "status": "completed",
+      "evidence": [
+        "hana-ppt-skill/assets/voice.json",
+        "hana-ppt-skill/references/voice-and-tone.md",
+        "hana-ppt-skill/assets/reference-analysis.json"
+      ],
+      "missing": []
     },
     {
       "id": "builder",
@@ -108,7 +119,7 @@
     "warning": "로컬 HFG IR 2건은 사용자 승인된 운영 기준이지만 하나증권 공식 IR 또는 공식 CI 근거는 아니다. 제외된 리서치 자료는 계속 학습에서 제외한다."
   },
   "next_actions": [
-    "승인된 운영 브랜드 프로필을 사용하는 restyle_deck.py와 build_deck.py를 구현한다.",
+    "승인된 운영 브랜드·문체 프로필을 사용하는 restyle_deck.py와 build_deck.py를 구현한다.",
     "실제 PPTX 회귀 픽스처로 인수 MVP의 차트·SmartArt 경고와 손실 보고를 보강한다.",
     "CI 가이드를 확보하면 로고 보호영역과 공식 색상 수치만 별도 재검수한다.",
     "PowerPoint/LibreOffice 렌더와 구조·시각 품질 검사를 구현한다."
