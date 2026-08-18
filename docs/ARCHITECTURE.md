@@ -23,14 +23,14 @@ Codex가 어떤 자료를 읽고 어떤 기능을 실행할 수 있는지 결정
 
 - `hana-ppt-skill/SKILL.md`: 요청 분기와 실행 안전장치
 - `hana-ppt-skill/agents/openai.yaml`: UI 표시와 기본 호출 문구
-- `hana-ppt-skill/references/`: 디자인 토큰, 레이아웃, 분석 근거
+- `hana-ppt-skill/references/`: 디자인 토큰, 레이아웃, 문체와 분석 근거
 - `hana-ppt-skill/assets/`: 폰트, CI, 원본 레퍼런스, 기준 이미지와 후보 JSON
 
 저장소의 `hana-ppt-skill/`이 정본이고, 로컬의 `.codex/skills/hana-ppt-skill/`은 설치본입니다. 설치본을 직접 수정하지 않고 정본을 갱신한 뒤 `task_harness.py install`로 동기화합니다.
 
 ## 3. PPT 처리 계층
 
-`ingest_deck.py`와 `deck_spec` JSON Schema까지 MVP로 구현됐습니다. 스타일 적용·생성·폰트 처리는 예정 상태입니다.
+`ingest_deck.py`와 `deck_spec` JSON Schema까지 MVP로 구현됐습니다. 사용자 승인된 운영 `brand.json`은 마련됐지만 스타일 적용·생성·폰트 처리는 예정 상태입니다.
 
 ```text
 초안 PPTX 또는 구조화된 초안
@@ -62,6 +62,7 @@ Codex가 어떤 자료를 읽고 어떤 기능을 실행할 수 있는지 결정
 |---|---|---|
 | 진행 상태 | `project-state.json` | `docs/STATUS.md` |
 | 승인 브랜드 | `assets/brand.json` | 문서·PPT 산출물 |
+| 승인 운영 문체 | `assets/voice.json` | 제목·불릿 문체 진단 및 향후 변환 |
 | 검수 전 브랜드 | `assets/brand.candidate.json` | `references/design-tokens.md` |
 | 레퍼런스 포함 여부 | `assets/reference-decks/sources.json` | 분석·기준 이미지 목록 |
 | 스킬 실행 절차 | `hana-ppt-skill/SKILL.md` | 로컬 Codex 설치본 |

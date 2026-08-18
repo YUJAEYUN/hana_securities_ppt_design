@@ -8,7 +8,13 @@
       "local_path": "hana-financial-group/1Q26_HFG_Presentation_KOR.pdf",
       "pages": 25,
       "source": "user-provided",
-      "use": ["group-brand-reference", "layout-reference"]
+      "use": [
+        "group-brand-reference",
+        "layout-reference"
+      ],
+      "style_status": "approved-by-user",
+      "approval_scope": "hana-securities-operational-profile",
+      "approved_at": "2026-08-14"
     },
     {
       "id": "hfg-1h26-kor",
@@ -17,7 +23,13 @@
       "local_path": "hana-financial-group/1H26_HFG_Presentation_KOR.pdf",
       "pages": 26,
       "source": "user-provided",
-      "use": ["group-brand-reference", "layout-reference"]
+      "use": [
+        "group-brand-reference",
+        "layout-reference"
+      ],
+      "style_status": "approved-by-user",
+      "approval_scope": "hana-securities-operational-profile",
+      "approved_at": "2026-08-14"
     },
     {
       "id": "hana-securities-2026-08-market-strategy",
@@ -27,7 +39,9 @@
       "pages": 34,
       "source_url": "https://file.hanaw.com/download/research/FileServer/WEB/strategy/market/2026/07/31/lee_260803.pdf",
       "style_status": "excluded-by-user",
-      "use": ["content-structure-reference-only"]
+      "use": [
+        "content-structure-reference-only"
+      ]
     }
   ]
 }

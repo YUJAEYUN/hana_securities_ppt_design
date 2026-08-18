@@ -4,7 +4,7 @@
 
 외부 에이전트나 범용 PPT 도구가 만든 초안을 하나증권식 말투·구조·디자인으로 다듬고, 렌더링 결과까지 검사하기 위한 후처리 스킬 저장소입니다.
 
-> 현재 단계: PPTX 내용을 `deck_spec.json`으로 인수하는 MVP가 있습니다. HFG IR 기반 후보 규칙은 있지만 승인된 하나증권 브랜드 규칙과 PPT 후처리·렌더 엔진은 아직 구현되지 않았습니다.
+> 현재 단계: PPTX 내용을 `deck_spec.json`으로 인수하는 MVP가 있습니다. 사용자가 로컬 HFG IR 2건을 운영 기준으로 승인해 출처와 한계를 명시한 `brand.json`과 `voice.json`이 있으며, PPT 후처리·렌더 엔진은 아직 구현되지 않았습니다.
 
 ## 전체 구조
 
@@ -37,7 +37,7 @@
 │   ├── agents/openai.yaml    스킬 표시·호출 메타데이터
 │   ├── schemas/              deck_spec JSON Schema
 │   ├── scripts/              PPTX 인수 및 향후 처리 스크립트
-│   ├── references/           디자인 분석과 레이아웃 규칙
+│   ├── references/           디자인·레이아웃·문체 규칙
 │   └── assets/               폰트·CI·레퍼런스·후보 토큰
 ├── tools/task_harness.py     동기화·검증·설치·커밋·푸시
 └── .github/workflows/        원격 상태 동기화 검사
@@ -62,6 +62,7 @@ python hana-ppt-skill/scripts/ingest_deck.py input.pptx -o deck_spec.json
 | 무엇을 만들고 무엇은 만들지 않나 | [PRODUCT.md](docs/PRODUCT.md) |
 | 다음에 무엇을 구현하나 | [ROADMAP.md](docs/ROADMAP.md) |
 | 디자인 후보의 근거가 무엇인가 | [reference-analysis.md](hana-ppt-skill/references/reference-analysis.md) |
+| PPT 문체와 말투는 무엇인가 | [voice-and-tone.md](hana-ppt-skill/references/voice-and-tone.md) |
 
 ## 작업 방법
 
@@ -85,7 +86,7 @@ python tools/task_harness.py check
 
 ## 중요한 현재 제약
 
-- `brand.candidate.json`과 `layouts.candidate.json`은 HFG IR 자료에서 얻은 후보입니다.
-- 후보값을 하나증권 공식 스타일로 단정하지 않습니다.
+- `brand.json`은 사용자 승인된 HFG IR 기반 운영 프로필이며 하나증권 공식 CI 규격이 아닙니다.
+- `brand.candidate.json`과 `layouts.candidate.json`은 추출·레이아웃 검토 기록으로 남아 있습니다.
 - 하나증권 리서치 자료 한 건은 예외 사례로 지정돼 스타일 학습에서 제외됐습니다.
 - 승인된 `brand.json`, PPT 변환 스크립트, 폰트 임베딩과 렌더 검증은 아직 없습니다.

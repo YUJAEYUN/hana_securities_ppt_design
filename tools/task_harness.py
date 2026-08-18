@@ -177,6 +177,34 @@ def validate_assets() -> list[str]:
     used_sources = {item["source_id"] for item in analysis["baselines"]}
     if excluded & used_sources:
         errors.append(f"제외 레퍼런스가 기준 이미지에 포함됨: {sorted(excluded & used_sources)}")
+    brand_path = ASSETS_ROOT / "brand.json"
+    if brand_path.is_file():
+        brand = load_json(brand_path)
+        source_ids = {item["id"] for item in sources["documents"]}
+        approved_sources = set(brand.get("provenance", {}).get("source_ids", []))
+        if brand.get("status") != "approved":
+            errors.append("brand.json의 status는 approved여야 합니다.")
+        if not brand.get("approval", {}).get("record"):
+            errors.append("brand.json에 사람 승인 기록이 없습니다.")
+        if approved_sources - source_ids:
+            errors.append(f"brand.json의 미등록 출처: {sorted(approved_sources - source_ids)}")
+        if approved_sources & excluded:
+            errors.append(f"brand.json이 제외 레퍼런스를 사용함: {sorted(approved_sources & excluded)}")
+        if brand.get("logo", {}).get("safe_area") is None and brand.get("logo", {}).get("placement_status") != "blocked-until-ci-guide":
+            errors.append("로고 보호영역이 없으면 자동 배치를 차단해야 합니다.")
+    voice_path = ASSETS_ROOT / "voice.json"
+    if voice_path.is_file():
+        voice = load_json(voice_path)
+        voice_sources = set(voice.get("provenance", {}).get("source_ids", []))
+        if voice.get("status") != "approved" or not voice.get("approval", {}).get("scope"):
+            errors.append("voice.json에 승인 상태와 범위가 필요합니다.")
+        if voice_sources - {item["id"] for item in sources["documents"]}:
+            errors.append(f"voice.json의 미등록 출처: {sorted(voice_sources - {item['id'] for item in sources['documents']})}")
+        if voice_sources & excluded:
+            errors.append(f"voice.json이 제외 레퍼런스를 사용함: {sorted(voice_sources & excluded)}")
+        modes = voice.get("mode_policy", {})
+        if "원문" not in modes.get("restyle-only", "") or "새 사실" not in modes.get("hana-refine", ""):
+            errors.append("voice.json의 실행 모드별 콘텐츠 보존 정책이 불완전합니다.")
     return errors
 
 
