@@ -78,7 +78,7 @@ def restyle_theme_parts(parts: dict[str, bytes], brand: dict) -> dict[str, bytes
     return updated
 
 
-def _load_approved(path: Path, kind: str) -> dict:
+def load_approved_json(path: Path, kind: str) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
     if data.get("status") != "approved":
         raise ValueError(f"승인되지 않은 {kind}은(는) 실행에 사용할 수 없습니다.")
@@ -95,7 +95,7 @@ def _write_pptx(original: dict[str, bytes], updated: dict[str, bytes], out_path:
 
 
 def restyle_theme_only(pptx_path: Path, brand_path: Path, out_path: Path) -> dict[str, object]:
-    brand = _load_approved(brand_path, "brand.json")
+    brand = load_approved_json(brand_path, "brand.json")
     with zipfile.ZipFile(pptx_path) as archive:
         original = {name: archive.read(name) for name in archive.namelist()}
     updated = restyle_theme_parts(original, brand)
@@ -114,8 +114,8 @@ def load_edits(edits_path: Path) -> dict[int, dict[int, str]]:
 def refine(
     pptx_path: Path, brand_path: Path, voice_path: Path, edits_path: Path, out_path: Path
 ) -> dict[str, object]:
-    brand = _load_approved(brand_path, "brand.json")
-    voice = _load_approved(voice_path, "voice.json")
+    brand = load_approved_json(brand_path, "brand.json")
+    voice = load_approved_json(voice_path, "voice.json")
     edits_by_slide = load_edits(edits_path)
     if not edits_by_slide:
         raise ValueError("edits 파일에 수정할 슬라이드가 없습니다.")

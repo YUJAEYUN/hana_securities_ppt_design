@@ -452,6 +452,112 @@ class BuildDeckTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 BUILD.build_deck(deck_spec_path, brand_path, out_path)
 
+    ROLE_DECK_SPEC = {
+        "schema_version": 1,
+        "source": {"path": "x.pptx", "sha256": "0" * 64},
+        "slides": [
+            {
+                "number": 1,
+                "part": "ppt/slides/slide1.xml",
+                "elements": [
+                    {"kind": "shape", "name": "Title", "text": "2026년 1분기 경영실적 Highlights"},
+                    {"kind": "shape", "name": "Date", "text": "2026.08.18"},
+                    {"kind": "shape", "name": "Extra", "text": "무시되는 셋째 텍스트"},
+                ],
+                "warnings": [],
+            },
+            {
+                "number": 2,
+                "part": "ppt/slides/slide2.xml",
+                "elements": [
+                    {"kind": "shape", "name": "Title", "text": "수익성"},
+                    {"kind": "shape", "name": "Body", "text": "금지된 본문 텍스트"},
+                ],
+                "warnings": [],
+            },
+            {
+                "number": 3,
+                "part": "ppt/slides/slide3.xml",
+                "elements": [
+                    {"kind": "shape", "name": "Title", "text": "DISCLAIMER"},
+                    {"kind": "shape", "name": "P1", "text": "본 자료는 정보 제공 목적으로만 작성되었습니다."},
+                    {"kind": "shape", "name": "P2", "text": "투자 판단의 최종 책임은 투자자 본인에게 있습니다."},
+                ],
+                "warnings": [],
+            },
+        ],
+        "warnings": [],
+    }
+
+    def _write_role_deck_spec(self, directory: Path) -> Path:
+        path = Path(directory) / "deck_spec.json"
+        path.write_text(json.dumps(self.ROLE_DECK_SPEC, ensure_ascii=False), encoding="utf-8")
+        return path
+
+    def test_layout_plan_renders_cover_section_divider_and_disclaimer(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_role_deck_spec(directory)
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(
+                json.dumps({"1": "cover", "2": "section-divider", "3": "disclaimer"}), encoding="utf-8"
+            )
+            out_path = Path(directory) / "out.pptx"
+            result = BUILD.build_deck(
+                deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+            )
+            with zipfile.ZipFile(out_path) as archive:
+                cover = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+                divider = archive.read("ppt/slides/slide2.xml").decode("utf-8")
+                disclaimer = archive.read("ppt/slides/slide3.xml").decode("utf-8")
+
+        self.assertIn("2026.08.18", cover)
+        self.assertNotIn("무시되는 셋째 텍스트", cover)
+        self.assertTrue(any("표지 레이아웃은 제목·부제만 배치" in warning for warning in result["warnings"]))
+
+        self.assertIn('<a:pPr algn="ctr"/>', divider)
+        self.assertNotIn("금지된 본문 텍스트", divider)
+        self.assertTrue(any("섹션 구분 레이아웃은 본문을 배치하지 않는다" in warning for warning in result["warnings"]))
+
+        self.assertIn("본 자료는 정보 제공 목적으로만 작성되었습니다.", disclaimer)
+        self.assertIn("투자 판단의 최종 책임은 투자자 본인에게 있습니다.", disclaimer)
+
+    def test_layout_plan_requires_both_layouts_and_plan(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_role_deck_spec(directory)
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                BUILD.build_deck(deck_spec_path, brand_path, out_path, layouts_path=layouts_path)
+
+    def test_layout_plan_rejects_unknown_role(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_role_deck_spec(directory)
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(json.dumps({"1": "not-a-real-role"}), encoding="utf-8")
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                BUILD.build_deck(
+                    deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+                )
+
+    def test_layout_plan_rejects_unknown_slide_number(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_role_deck_spec(directory)
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(json.dumps({"99": "cover"}), encoding="utf-8")
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                BUILD.build_deck(
+                    deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
