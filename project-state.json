@@ -2,7 +2,7 @@
   "schema_version": 1,
   "updated_at": "2026-08-18",
   "current_phase": "brand-profile-approved",
-  "summary": "로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json과 voice.json을 확정했다. 하나증권 공식 CI·공식 문체로 주장하지 않는다. PPT 처리 계층을 엔진(범용 PPTX 조작)과 규칙(하나증권 브랜드·문체) 두 겹으로 분리하기로 하고, LibreOffice+poppler 기반 render_slides.py를 첫 엔진 겹 구성요소로 추가했다. 후처리·생성·구조/시각 품질 검사 구현은 남아 있다.",
+  "summary": "로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json과 voice.json을 확정했다. 하나증권 공식 CI·공식 문체로 주장하지 않는다. PPT 처리 계층을 엔진(범용 PPTX 조작)과 규칙(하나증권 브랜드·문체) 두 겹으로 분리하기로 하고, LibreOffice+poppler 기반 render_slides.py에 이어 restyle_deck.py(테마 색상·폰트 적용, restyle-only)를 추가했다. 슬라이드 요소·레이아웃 수준 후처리, build_deck.py, 구조/시각 품질 검사 구현은 남아 있다.",
   "phases": [
     {
       "id": "requirements",
@@ -72,11 +72,13 @@
       "status": "in_progress",
       "evidence": [
         "hana-ppt-skill/scripts/ingest_deck.py",
+        "hana-ppt-skill/scripts/restyle_deck.py",
         "hana-ppt-skill/schemas/deck_spec.schema.json",
         "tests/test_repository.py"
       ],
       "missing": [
-        "restyle_deck.py",
+        "restyle_deck.py의 슬라이드 요소·레이아웃 수준 재구성(현재는 테마 색상·폰트만 적용)",
+        "restyle_deck.py의 hana-refine 모드",
         "build_deck.py",
         "차트·SmartArt 상세 인수",
         "실제 PPTX 회귀 픽스처"
@@ -122,7 +124,9 @@
     "warning": "로컬 HFG IR 2건은 사용자 승인된 운영 기준이지만 하나증권 공식 IR 또는 공식 CI 근거는 아니다. 제외된 리서치 자료는 계속 학습에서 제외한다."
   },
   "next_actions": [
-    "엔진 겹(범용 PPTX 조작)과 규칙 겹(하나증권 브랜드·문체) 분리 원칙에 맞춰, 승인된 운영 브랜드·문체 프로필을 주입하는 restyle_deck.py와 build_deck.py를 구현한다.",
+    "restyle_deck.py를 슬라이드 요소·레이아웃 수준(표지, 목차, 요약, 비교, 타임라인, 차트, 표)까지 확장하고, 원문·데이터 잠금 검사를 추가한다.",
+    "restyle_deck.py의 hana-refine 모드(문체·구조 개선, 출처 범위 안에서만)를 구현한다.",
+    "build_deck.py로 deck_spec.json에서 새 PPTX를 재생성하는 경로를 구현한다.",
     "실제 PPTX 회귀 픽스처로 인수 MVP의 차트·SmartArt 경고와 손실 보고를 보강한다.",
     "CI 가이드를 확보하면 로고 보호영역과 공식 색상 수치만 별도 재검수한다.",
     "render_slides.py 출력을 입력으로 받는 quality_check.py(구조 QA)와 visual_check.py(시각 QA)를 구현하고, 콘텐츠 QA → 구조 QA → 시각 QA 3단계 파이프라인을 완성한다.",

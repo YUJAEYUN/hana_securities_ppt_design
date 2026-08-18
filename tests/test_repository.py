@@ -21,6 +21,7 @@ def load_module(name: str, path: Path):
 HARNESS = load_module("task_harness", ROOT / "tools" / "task_harness.py")
 INGEST = load_module("ingest_deck", ROOT / "hana-ppt-skill" / "scripts" / "ingest_deck.py")
 RENDER = load_module("render_slides", ROOT / "hana-ppt-skill" / "scripts" / "render_slides.py")
+RESTYLE = load_module("restyle_deck", ROOT / "hana-ppt-skill" / "scripts" / "restyle_deck.py")
 
 
 class DocumentValidationTests(unittest.TestCase):
@@ -112,6 +113,98 @@ class RenderSlidesTests(unittest.TestCase):
             manifest = RENDER.build_manifest(pptx_path, pdf_path, images, dpi=150)
         self.assertEqual("complete", manifest["status"])
         self.assertEqual([1, 2], [slide["number"] for slide in manifest["slides"]])
+
+
+class RestyleDeckTests(unittest.TestCase):
+    THEME_XML = (
+        '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office">'
+        "<a:themeElements>"
+        '<a:clrScheme name="Office">'
+        '<a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1>'
+        '<a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>'
+        '<a:dk2><a:srgbClr val="44546A"/></a:dk2>'
+        '<a:lt2><a:srgbClr val="E7E6E6"/></a:lt2>'
+        '<a:accent1><a:srgbClr val="4472C4"/></a:accent1>'
+        '<a:accent2><a:srgbClr val="ED7D31"/></a:accent2>'
+        '<a:accent3><a:srgbClr val="A5A5A5"/></a:accent3>'
+        '<a:accent4><a:srgbClr val="FFC000"/></a:accent4>'
+        '<a:accent5><a:srgbClr val="5B9BD5"/></a:accent5>'
+        '<a:accent6><a:srgbClr val="70AD47"/></a:accent6>'
+        '<a:hlink><a:srgbClr val="0563C1"/></a:hlink>'
+        '<a:folHlink><a:srgbClr val="954F72"/></a:folHlink>'
+        "</a:clrScheme>"
+        '<a:fontScheme name="Office">'
+        '<a:majorFont><a:latin typeface="Calibri Light" panose="020F0302020204030204"/>'
+        '<a:ea typeface=""/><a:cs typeface=""/></a:majorFont>'
+        '<a:minorFont><a:latin typeface="Calibri" panose="020F0502020204030204"/>'
+        '<a:ea typeface=""/><a:cs typeface=""/></a:minorFont>'
+        "</a:fontScheme>"
+        "</a:themeElements>"
+        "</a:theme>"
+    )
+
+    def _fixture(self, path: Path) -> None:
+        files = {
+            "ppt/presentation.xml": (
+                '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>'
+            ),
+            "ppt/theme/theme1.xml": self.THEME_XML,
+            "ppt/slides/slide1.xml": (
+                '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+                'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+                "<p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r>"
+                "<a:t>원문 유지</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
+            ),
+        }
+        with zipfile.ZipFile(path, "w") as archive:
+            for name, value in files.items():
+                archive.writestr(name, value)
+
+    def test_restyle_applies_brand_colors_and_fonts_without_touching_slides(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.pptx"
+            self._fixture(source)
+            out_path = Path(directory) / "out.pptx"
+            result = RESTYLE.restyle(source, brand_path, out_path, "restyle-only")
+            with zipfile.ZipFile(source) as original, zipfile.ZipFile(out_path) as restyled:
+                self.assertEqual(
+                    original.read("ppt/slides/slide1.xml"), restyled.read("ppt/slides/slide1.xml")
+                )
+                theme_xml = restyled.read("ppt/theme/theme1.xml").decode("utf-8")
+        self.assertIn('<a:dk1><a:srgbClr val="006060"/></a:dk1>', theme_xml)
+        self.assertIn('<a:accent1><a:srgbClr val="009070"/></a:accent1>', theme_xml)
+        self.assertIn('<a:latin typeface="하나2.0 H"', theme_xml)
+        self.assertIn('<a:latin typeface="하나2.0 R"', theme_xml)
+        self.assertEqual(["ppt/theme/theme1.xml"], result["theme_parts_changed"])
+
+    def test_rejects_unapproved_brand(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.pptx"
+            self._fixture(source)
+            brand_path = Path(directory) / "brand.candidate.json"
+            brand_path.write_text(
+                json.dumps(
+                    {
+                        "status": "candidate",
+                        "colors": {},
+                        "typography": {"heading": {"families": ["x"]}, "body": {"families": ["y"]}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                RESTYLE.restyle(source, brand_path, out_path, "restyle-only")
+
+    def test_hana_refine_mode_is_not_yet_supported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.pptx"
+            self._fixture(source)
+            brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(NotImplementedError):
+                RESTYLE.restyle(source, brand_path, out_path, "hana-refine")
 
 
 if __name__ == "__main__":
