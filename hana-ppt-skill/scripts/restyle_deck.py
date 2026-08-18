@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""승인된 brand.json의 색상·폰트를 PPTX 테마 파트에 적용합니다.
+"""승인된 brand.json/voice.json 규칙을 PPTX에 적용합니다.
 
-슬라이드 XML은 전혀 읽거나 쓰지 않으므로 원문·수치·데이터는 항상 보존됩니다.
+restyle-only: 테마 파트(색상·폰트)만 바꾸고 슬라이드 XML은 전혀 읽지 않는다.
+hana-refine: 에이전트가 미리 작성한 edits.json으로 슬라이드 텍스트 런을 교체하되,
+반드시 verify_evidence_preserved로 수치·비교 기준 보존을 확인한 뒤에만 적용한다.
+검증에 실패하면 어떤 슬라이드도 수정하지 않는다.
 """
 
 from __future__ import annotations
@@ -11,6 +14,9 @@ import json
 import re
 import zipfile
 from pathlib import Path
+
+import text_units
+import verify_evidence_preserved
 
 THEME_PART_RE = re.compile(r"^ppt/theme/theme\d+\.xml$")
 
@@ -72,37 +78,116 @@ def restyle_theme_parts(parts: dict[str, bytes], brand: dict) -> dict[str, bytes
     return updated
 
 
-def restyle(pptx_path: Path, brand_path: Path, out_path: Path, mode: str) -> dict[str, object]:
-    if mode != "restyle-only":
-        raise NotImplementedError(
-            "hana-refine 모드의 콘텐츠 수준 변경은 아직 구현되지 않았습니다. 현재는 restyle-only(테마 색상·폰트)만 지원합니다."
-        )
-    brand = json.loads(brand_path.read_text(encoding="utf-8"))
-    if brand.get("status") != "approved":
-        raise ValueError("승인되지 않은 brand.json은 실행에 사용할 수 없습니다.")
-    with zipfile.ZipFile(pptx_path) as archive:
-        original = {name: archive.read(name) for name in archive.namelist()}
-    updated = restyle_theme_parts(original, brand)
+def _load_approved(path: Path, kind: str) -> dict:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("status") != "approved":
+        raise ValueError(f"승인되지 않은 {kind}은(는) 실행에 사용할 수 없습니다.")
+    return data
+
+
+def _write_pptx(original: dict[str, bytes], updated: dict[str, bytes], out_path: Path) -> list[str]:
     changed_parts = sorted(name for name, data in updated.items() if data != original[name])
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, data in updated.items():
             archive.writestr(name, data)
-    return {"mode": mode, "theme_parts_changed": changed_parts}
+    return changed_parts
+
+
+def restyle_theme_only(pptx_path: Path, brand_path: Path, out_path: Path) -> dict[str, object]:
+    brand = _load_approved(brand_path, "brand.json")
+    with zipfile.ZipFile(pptx_path) as archive:
+        original = {name: archive.read(name) for name in archive.namelist()}
+    updated = restyle_theme_parts(original, brand)
+    changed_parts = _write_pptx(original, updated, out_path)
+    return {"mode": "restyle-only", "theme_parts_changed": changed_parts}
+
+
+def load_edits(edits_path: Path) -> dict[int, dict[int, str]]:
+    raw = json.loads(edits_path.read_text(encoding="utf-8"))
+    return {
+        int(slide_number): {int(run_index): text for run_index, text in slide_edits.items()}
+        for slide_number, slide_edits in raw.items()
+    }
+
+
+def refine(
+    pptx_path: Path, brand_path: Path, voice_path: Path, edits_path: Path, out_path: Path
+) -> dict[str, object]:
+    brand = _load_approved(brand_path, "brand.json")
+    voice = _load_approved(voice_path, "voice.json")
+    edits_by_slide = load_edits(edits_path)
+    if not edits_by_slide:
+        raise ValueError("edits 파일에 수정할 슬라이드가 없습니다.")
+    with zipfile.ZipFile(pptx_path) as archive:
+        original = {name: archive.read(name) for name in archive.namelist()}
+        errors: list[str] = []
+        updated = dict(original)
+        for slide_number, slide_edits in edits_by_slide.items():
+            try:
+                part = text_units.slide_part_for_number(archive, slide_number)
+            except ValueError as exc:
+                errors.append(str(exc))
+                continue
+            slide_xml = original[part].decode("utf-8")
+            slide_units = text_units.extract_text_units(slide_xml)
+            slide_errors = verify_evidence_preserved.verify(slide_units, slide_edits)
+            if slide_errors:
+                errors.extend(f"슬라이드 {slide_number}: {error}" for error in slide_errors)
+                continue
+            updated[part] = text_units.apply_text_edits(slide_xml, slide_edits).encode("utf-8")
+    if errors:
+        raise ValueError("hana-refine 검증 실패로 어떤 슬라이드도 수정하지 않았습니다:\n" + "\n".join(errors))
+    updated = restyle_theme_parts(updated, brand)
+    changed_parts = _write_pptx(original, updated, out_path)
+    return {
+        "mode": "hana-refine",
+        "policy": voice["mode_policy"]["hana-refine"],
+        "edited_slides": sorted(edits_by_slide),
+        "changed_parts": changed_parts,
+    }
+
+
+def restyle(
+    pptx_path: Path,
+    brand_path: Path,
+    out_path: Path,
+    mode: str,
+    *,
+    voice_path: Path | None = None,
+    edits_path: Path | None = None,
+) -> dict[str, object]:
+    if mode == "restyle-only":
+        return restyle_theme_only(pptx_path, brand_path, out_path)
+    if mode == "hana-refine":
+        if voice_path is None or edits_path is None:
+            raise ValueError("hana-refine 모드는 voice_path와 edits_path가 모두 필요합니다.")
+        return refine(pptx_path, brand_path, voice_path, edits_path, out_path)
+    raise ValueError(f"알 수 없는 모드: {mode}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="brand.json 색상·폰트를 PPTX 테마에 적용합니다.")
+    parser = argparse.ArgumentParser(description="brand.json/voice.json 규칙을 PPTX에 적용합니다.")
     parser.add_argument("input", type=Path)
     parser.add_argument("--brand", type=Path, required=True)
     parser.add_argument("-o", "--output", type=Path, required=True)
     parser.add_argument("--mode", choices=["restyle-only", "hana-refine"], default="restyle-only")
+    parser.add_argument("--voice", type=Path, help="hana-refine에 필요한 승인된 voice.json")
+    parser.add_argument("--edits", type=Path, help="hana-refine에 필요한 슬라이드별 텍스트 수정안 JSON")
     args = parser.parse_args()
     try:
-        result = restyle(args.input, args.brand, args.output, args.mode)
-    except (OSError, ValueError, NotImplementedError) as exc:
+        result = restyle(
+            args.input, args.brand, args.output, args.mode, voice_path=args.voice, edits_path=args.edits
+        )
+    except (OSError, ValueError) as exc:
         parser.error(str(exc))
-    print(f"테마 적용 완료: {args.output} (변경된 테마 파트 {len(result['theme_parts_changed'])}개)")
+    if result["mode"] == "restyle-only":
+        print(f"테마 적용 완료: {args.output} (변경된 테마 파트 {len(result['theme_parts_changed'])}개)")
+    else:
+        print(
+            f"hana-refine 적용 완료: {args.output} "
+            f"(수정 슬라이드 {len(result['edited_slides'])}개, 변경 파트 {len(result['changed_parts'])}개)"
+        )
 
 
 if __name__ == "__main__":

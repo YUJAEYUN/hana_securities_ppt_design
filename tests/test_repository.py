@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS_DIR = ROOT / "hana-ppt-skill" / "scripts"
+# restyle_deck.py는 "import text_units"처럼 형제 스크립트를 일반 import로 불러온다.
+# 직접 실행할 때는 파이썬이 스크립트 폴더를 자동으로 sys.path에 넣어주지만, 이 테스트처럼
+# 파일 경로로 동적 로드할 때는 그 자동 추가가 없으므로 여기서 한 번 등록해 준다.
+sys.path.insert(0, str(SCRIPTS_DIR))
 
 
 def load_module(name: str, path: Path):
@@ -19,9 +25,11 @@ def load_module(name: str, path: Path):
 
 
 HARNESS = load_module("task_harness", ROOT / "tools" / "task_harness.py")
-INGEST = load_module("ingest_deck", ROOT / "hana-ppt-skill" / "scripts" / "ingest_deck.py")
-RENDER = load_module("render_slides", ROOT / "hana-ppt-skill" / "scripts" / "render_slides.py")
-RESTYLE = load_module("restyle_deck", ROOT / "hana-ppt-skill" / "scripts" / "restyle_deck.py")
+INGEST = load_module("ingest_deck", SCRIPTS_DIR / "ingest_deck.py")
+RENDER = load_module("render_slides", SCRIPTS_DIR / "render_slides.py")
+TEXT_UNITS = load_module("text_units", SCRIPTS_DIR / "text_units.py")
+VERIFY_EVIDENCE = load_module("verify_evidence_preserved", SCRIPTS_DIR / "verify_evidence_preserved.py")
+RESTYLE = load_module("restyle_deck", SCRIPTS_DIR / "restyle_deck.py")
 
 
 class DocumentValidationTests(unittest.TestCase):
@@ -143,18 +151,29 @@ class RestyleDeckTests(unittest.TestCase):
         "</a:theme>"
     )
 
+    SLIDE_XML = (
+        '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        "<p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r>"
+        "<a:t>핵심이익의 견조한 성장에 힘입어 당기순이익 전년동기 대비 7.3% 증가</a:t>"
+        "</a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
+    )
+
     def _fixture(self, path: Path) -> None:
         files = {
             "ppt/presentation.xml": (
-                '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>'
+                '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                '<p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst></p:presentation>'
+            ),
+            "ppt/_rels/presentation.xml.rels": (
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                '<Relationship Id="rId1" '
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" '
+                'Target="slides/slide1.xml"/></Relationships>'
             ),
             "ppt/theme/theme1.xml": self.THEME_XML,
-            "ppt/slides/slide1.xml": (
-                '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
-                'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
-                "<p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r>"
-                "<a:t>원문 유지</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
-            ),
+            "ppt/slides/slide1.xml": self.SLIDE_XML,
         }
         with zipfile.ZipFile(path, "w") as archive:
             for name, value in files.items():
@@ -197,14 +216,115 @@ class RestyleDeckTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 RESTYLE.restyle(source, brand_path, out_path, "restyle-only")
 
-    def test_hana_refine_mode_is_not_yet_supported(self):
+    def test_hana_refine_requires_voice_and_edits(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "sample.pptx"
             self._fixture(source)
             brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
             out_path = Path(directory) / "out.pptx"
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(ValueError):
                 RESTYLE.restyle(source, brand_path, out_path, "hana-refine")
+
+    def test_refine_applies_edits_that_preserve_numbers_and_updates_theme(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        voice_path = ROOT / "hana-ppt-skill" / "assets" / "voice.json"
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.pptx"
+            self._fixture(source)
+            edits_path = Path(directory) / "edits.json"
+            edits_path.write_text(
+                json.dumps({"1": {"0": "핵심이익 성장에 따라 당기순이익이 전년동기 대비 7.3% 확대"}}),
+                encoding="utf-8",
+            )
+            out_path = Path(directory) / "out.pptx"
+            result = RESTYLE.restyle(
+                source, brand_path, out_path, "hana-refine", voice_path=voice_path, edits_path=edits_path
+            )
+            with zipfile.ZipFile(out_path) as restyled:
+                slide_xml = restyled.read("ppt/slides/slide1.xml").decode("utf-8")
+                theme_xml = restyled.read("ppt/theme/theme1.xml").decode("utf-8")
+        self.assertIn("당기순이익이 전년동기 대비 7.3% 확대", slide_xml)
+        self.assertIn('<a:dk1><a:srgbClr val="006060"/></a:dk1>', theme_xml)
+        self.assertEqual([1], result["edited_slides"])
+        self.assertIn("새 사실을 만들지 않고", result["policy"])
+
+    def test_refine_rejects_edits_that_invent_a_number_and_writes_nothing(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        voice_path = ROOT / "hana-ppt-skill" / "assets" / "voice.json"
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.pptx"
+            self._fixture(source)
+            edits_path = Path(directory) / "edits.json"
+            edits_path.write_text(
+                json.dumps({"1": {"0": "당기순이익 전년동기 대비 8.3% 증가"}}),
+                encoding="utf-8",
+            )
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                RESTYLE.restyle(
+                    source, brand_path, out_path, "hana-refine", voice_path=voice_path, edits_path=edits_path
+                )
+            self.assertFalse(out_path.exists())
+
+    def test_refine_rejects_edits_that_drop_comparison_basis(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        voice_path = ROOT / "hana-ppt-skill" / "assets" / "voice.json"
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.pptx"
+            self._fixture(source)
+            edits_path = Path(directory) / "edits.json"
+            edits_path.write_text(
+                json.dumps({"1": {"0": "당기순이익 7.3% 증가"}}),
+                encoding="utf-8",
+            )
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                RESTYLE.restyle(
+                    source, brand_path, out_path, "hana-refine", voice_path=voice_path, edits_path=edits_path
+                )
+
+
+class TextUnitsTests(unittest.TestCase):
+    def test_extract_and_apply_round_trip_preserves_run_formatting(self):
+        slide_xml = (
+            '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+            'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+            "<p:cSld><p:spTree><p:sp><p:txBody>"
+            '<a:p><a:r><a:rPr b="1"/><a:t xml:space="preserve">굵은 제목 </a:t></a:r></a:p>'
+            "<a:p><a:r><a:t>본문 불릿</a:t></a:r></a:p>"
+            "</p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
+        )
+        units = TEXT_UNITS.extract_text_units(slide_xml)
+        self.assertEqual(["굵은 제목 ", "본문 불릿"], [unit["text"] for unit in units])
+
+        updated_xml = TEXT_UNITS.apply_text_edits(slide_xml, {1: "새 불릿 내용"})
+        self.assertIn('<a:rPr b="1"/><a:t xml:space="preserve">굵은 제목 </a:t>', updated_xml)
+        self.assertIn("<a:t>새 불릿 내용</a:t>", updated_xml)
+
+    def test_apply_text_edits_escapes_special_characters(self):
+        slide_xml = (
+            '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+            'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+            "<p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r>"
+            "<a:t>원문</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
+        )
+        updated_xml = TEXT_UNITS.apply_text_edits(slide_xml, {0: "A&B <C>"})
+        self.assertIn("<a:t>A&amp;B &lt;C&gt;</a:t>", updated_xml)
+
+
+class VerifyEvidencePreservedTests(unittest.TestCase):
+    def test_check_unit_allows_rewording_that_keeps_numbers_and_markers(self):
+        original = "당기순이익 전년동기 대비 7.3% 증가"
+        edited = "전년동기 대비 당기순이익이 7.3% 확대"
+        self.assertEqual([], VERIFY_EVIDENCE.check_unit(original, edited))
+
+    def test_check_unit_flags_invented_number(self):
+        errors = VERIFY_EVIDENCE.check_unit("7.3% 증가", "8.3% 증가")
+        self.assertTrue(any("수치 불일치" in error for error in errors))
+
+    def test_check_unit_flags_dropped_comparison_marker(self):
+        errors = VERIFY_EVIDENCE.check_unit("전년동기 대비 7.3% 증가", "7.3% 증가")
+        self.assertTrue(any("비교 기준 누락" in error for error in errors))
 
 
 if __name__ == "__main__":
