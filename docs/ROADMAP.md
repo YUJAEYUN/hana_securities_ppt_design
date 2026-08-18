@@ -31,10 +31,11 @@
 ## 4. 하나 스타일 후처리
 
 - `restyle_deck.py`/`build_deck.py`는 범용 PPTX 조작(엔진 겹)만 담당하고, 하나증권 브랜드·문체 판단(규칙 겹)은 승인된 `brand.json`/`voice.json` 주입으로 분리합니다.
-- `restyle-only`, `hana-refine` 분기
-- 표지, 목차, 요약, 비교, 타임라인, 차트, 표와 종결 레이아웃
+- `restyle_deck.py`의 `restyle-only`(완료): 테마 파트(`ppt/theme/themeN.xml`)의 색상·폰트만 승인된 `brand.json`으로 교체. 슬라이드 XML은 전혀 읽거나 쓰지 않아 원문 잠금을 구조적으로 보장합니다.
+- `restyle_deck.py`의 `hana-refine`(1차 구현 완료, 텍스트 런 수준): `text_units.py`로 슬라이드 텍스트 런을 추출하고, 에이전트가 `voice.json` 규칙에 따라 다시 쓴 `edits.json`을 `verify_evidence_preserved.py`로 검증(수치·비교기준 보존)한 뒤에만 적용합니다. 검증 실패 시 어떤 슬라이드도 수정하지 않습니다. 절차는 [hana-refine-workflow.md](../hana-ppt-skill/references/hana-refine-workflow.md) 참고.
+- 남은 범위: 표지, 목차, 요약, 비교, 타임라인, 차트, 표 등 슬라이드 요소·레이아웃 수준 재구성(배치·구조 변경)
 - 밀도 초과 시 자동 축소보다 페이지 분할 우선
-- 원문·데이터 잠금과 출처 범위 검사
+- 원문·데이터 잠금과 출처 범위 검사(레이아웃 수준까지 확장 필요)
 
 종료 조건: 두 모드가 변경 경계를 지키며 PPTX를 생성합니다.
 

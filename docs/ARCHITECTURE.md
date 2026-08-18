@@ -51,6 +51,10 @@ Codex가 어떤 자료를 읽고 어떤 기능을 실행할 수 있는지 결정
 
 Anthropic이 공개한 pptx 스킬의 흐름(인수 → 편집 → 렌더 → 3단계 품질 검사: 콘텐츠 QA → 파일/구조 QA → 시각 QA)은 이 두 겹 분리의 유효성을 보여주는 참고 사례로 삼되, **코드는 복제하지 않습니다**. 해당 스킬의 `LICENSE.txt`는 서비스 밖으로의 추출·복제·파생물 제작·재배포를 금지하므로, 이 저장소의 엔진 겹 스크립트는 같은 아이디어를 독자적으로 새로 구현합니다.
 
+`restyle_deck.py`의 1차 구현은 이 분리를 그대로 따릅니다. `apply_theme_colors`/`apply_theme_fonts`는 어떤 문서군에도 통하는 순수 엔진 함수(테마 XML의 색상·폰트 슬롯만 치환)이고, `brand.json`의 색상 role을 OOXML 테마 슬롯(`dk1`, `accent1` 등)에 연결하는 `COLOR_SLOT_ROLE` 매핑만 하나증권 고유 규칙입니다. 슬라이드 XML은 아예 읽지 않으므로 `restyle-only` 모드의 원문 잠금이 코드 구조로 보장됩니다.
+
+`hana-refine`은 텍스트를 실제로 다시 써야 해서 같은 방식(코드가 결과를 결정)으로는 안전을 보장할 수 없습니다. 대신 **생성(에이전트)과 검증(엔진)을 분리**합니다. `text_units.py`는 슬라이드의 `<a:t>` 런을 문서 순서 그대로 추출/치환하는 범용 엔진 함수만 제공하고, 실제 문장을 판단해 다시 쓰는 일은 그 결과를 소비하는 에이전트(Claude/Codex 세션)가 합니다. `verify_evidence_preserved.py`는 에이전트가 작성한 수정안을 원문과 대조해 숫자·비교 기준(`전년동기 대비` 등)이 보존됐는지 기계적으로 확인하고, 하나라도 어긋나면 `restyle_deck.py`가 어떤 슬라이드도 쓰지 않습니다. 절차는 [hana-refine-workflow.md](../hana-ppt-skill/references/hana-refine-workflow.md)에 있습니다.
+
 두 실행 모드를 제공합니다.
 
 - `restyle-only`: 원문, 수치와 데이터는 잠그고 디자인만 개선
