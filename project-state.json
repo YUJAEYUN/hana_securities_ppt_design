@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-08-14",
+  "updated_at": "2026-08-18",
   "current_phase": "brand-profile-approved",
-  "summary": "로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json과 voice.json을 확정했다. 하나증권 공식 CI·공식 문체로 주장하지 않으며, PPT 후처리·생성·렌더 구현은 남아 있다.",
+  "summary": "로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json과 voice.json을 확정했다. 하나증권 공식 CI·공식 문체로 주장하지 않는다. PPT 처리 계층을 엔진(범용 PPTX 조작)과 규칙(하나증권 브랜드·문체) 두 겹으로 분리하기로 하고, LibreOffice+poppler 기반 render_slides.py를 첫 엔진 겹 구성요소로 추가했다. 후처리·생성·구조/시각 품질 검사 구현은 남아 있다.",
   "phases": [
     {
       "id": "requirements",
@@ -87,13 +87,16 @@
       "label": "구조·렌더·시각 품질 검사",
       "status": "in_progress",
       "evidence": [
-        "hana-ppt-skill/assets/baselines"
+        "hana-ppt-skill/assets/baselines",
+        "hana-ppt-skill/scripts/render_slides.py",
+        "tests/test_repository.py"
       ],
       "missing": [
         "quality_check.py",
-        "render_slides.py",
         "visual_check.py",
-        "테스트"
+        "contact sheet 생성",
+        "PowerPoint 렌더러 경로",
+        "render_slides.py 통합 테스트(soffice/pdftoppm 필요)"
       ]
     },
     {
@@ -119,9 +122,10 @@
     "warning": "로컬 HFG IR 2건은 사용자 승인된 운영 기준이지만 하나증권 공식 IR 또는 공식 CI 근거는 아니다. 제외된 리서치 자료는 계속 학습에서 제외한다."
   },
   "next_actions": [
-    "승인된 운영 브랜드·문체 프로필을 사용하는 restyle_deck.py와 build_deck.py를 구현한다.",
+    "엔진 겹(범용 PPTX 조작)과 규칙 겹(하나증권 브랜드·문체) 분리 원칙에 맞춰, 승인된 운영 브랜드·문체 프로필을 주입하는 restyle_deck.py와 build_deck.py를 구현한다.",
     "실제 PPTX 회귀 픽스처로 인수 MVP의 차트·SmartArt 경고와 손실 보고를 보강한다.",
     "CI 가이드를 확보하면 로고 보호영역과 공식 색상 수치만 별도 재검수한다.",
-    "PowerPoint/LibreOffice 렌더와 구조·시각 품질 검사를 구현한다."
+    "render_slides.py 출력을 입력으로 받는 quality_check.py(구조 QA)와 visual_check.py(시각 QA)를 구현하고, 콘텐츠 QA → 구조 QA → 시각 QA 3단계 파이프라인을 완성한다.",
+    "contact sheet 생성과 PowerPoint 우선 렌더 경로를 추가한다."
   ]
 }

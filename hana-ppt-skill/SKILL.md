@@ -20,16 +20,18 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 - 레이아웃: `references/layout-patterns.md`와 해당 문서군 패턴을 읽는다.
 - PPT 인수: `scripts/ingest_deck.py`로 원본을 변경하지 않고 `deck_spec.json` 인벤토리를 생성한다. 미지원 요소 경고를 손실 없는 변환 성공으로 간주하지 않는다.
 - PPT 후처리: 승인된 `brand.json`과 후처리 실행 스크립트가 모두 있을 때만 실행한다. 없으면 현재 미구현 또는 승인 대기 항목을 정확히 보고한다.
-- 품질 검사: 기준 이미지 전체 픽셀 일치가 아니라 화면비, 고정 요소, 경계, 정렬, 밀도와 색상 분포를 비교한다.
+- PPT 렌더: `scripts/render_slides.py`로 PPTX를 PDF와 슬라이드별 이미지로 변환하고 render manifest를 만든다. `soffice`나 `pdftoppm`이 없으면 명확한 오류로 중단하며 조용히 건너뛰지 않는다.
+- 품질 검사: 기준 이미지 전체 픽셀 일치가 아니라 화면비, 고정 요소, 경계, 정렬, 밀도와 색상 분포를 비교한다. 콘텐츠 QA → 구조 QA → 시각 QA 순서를 따른다.
 
 ## 변경 원칙
 
 1. 브랜드 사실은 JSON에, 설명은 references에 둔다. 같은 수치를 여러 문서에 반복하지 않는다.
 2. 후보와 승인 상태를 분리한다.
 3. 예외 레퍼런스는 스타일 토큰이나 기준 이미지에 포함하지 않는다.
-4. 소스 저장소의 구현·자산·문서가 바뀌면 `project-state.json`을 갱신한다.
-5. 소스 저장소 작업 종료 시 루트의 `tools/task_harness.py check`를 실행한다.
-6. 사용자가 커밋·푸시를 요청했거나 저장소 지침이 자동 게시를 요구하면 작업 전에 `begin`, 종료 시 `finish --message`를 실행한다.
+4. 외부 스킬(Anthropic 공식 pptx 스킬 등)의 흐름과 아이디어는 참고하되 코드는 복제하지 않는다. 재배포가 금지된 라이선스 자료는 독자 구현으로 대체한다.
+5. 소스 저장소의 구현·자산·문서가 바뀌면 `project-state.json`을 갱신한다.
+6. 소스 저장소 작업 종료 시 루트의 `tools/task_harness.py check`를 실행한다.
+7. 사용자가 커밋·푸시를 요청했거나 저장소 지침이 자동 게시를 요구하면 작업 전에 `begin`, 종료 시 `finish --message`를 실행한다.
 
 ## 현재 한계
 

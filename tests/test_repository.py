@@ -20,6 +20,7 @@ def load_module(name: str, path: Path):
 
 HARNESS = load_module("task_harness", ROOT / "tools" / "task_harness.py")
 INGEST = load_module("ingest_deck", ROOT / "hana-ppt-skill" / "scripts" / "ingest_deck.py")
+RENDER = load_module("render_slides", ROOT / "hana-ppt-skill" / "scripts" / "render_slides.py")
 
 
 class DocumentValidationTests(unittest.TestCase):
@@ -89,6 +90,28 @@ class IngestDeckTests(unittest.TestCase):
     def test_schema_is_parseable(self):
         schema = json.loads((ROOT / "hana-ppt-skill" / "schemas" / "deck_spec.schema.json").read_text())
         self.assertEqual(1, schema["properties"]["schema_version"]["const"])
+
+
+class RenderSlidesTests(unittest.TestCase):
+    def test_manifest_is_partial_without_images(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pptx_path = Path(directory) / "deck.pptx"
+            pptx_path.write_bytes(b"fake-pptx")
+            pdf_path = Path(directory) / "deck.pdf"
+            manifest = RENDER.build_manifest(pptx_path, pdf_path, [], dpi=150)
+        self.assertEqual("partial", manifest["status"])
+        self.assertEqual(64, len(manifest["source"]["sha256"]))
+        self.assertEqual([], manifest["slides"])
+
+    def test_manifest_is_complete_with_ordered_images(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pptx_path = Path(directory) / "deck.pptx"
+            pptx_path.write_bytes(b"fake-pptx")
+            pdf_path = Path(directory) / "deck.pdf"
+            images = [Path(directory) / "deck-1.jpg", Path(directory) / "deck-2.jpg"]
+            manifest = RENDER.build_manifest(pptx_path, pdf_path, images, dpi=150)
+        self.assertEqual("complete", manifest["status"])
+        self.assertEqual([1, 2], [slide["number"] for slide in manifest["slides"]])
 
 
 if __name__ == "__main__":

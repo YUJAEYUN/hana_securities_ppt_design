@@ -30,6 +30,7 @@
 
 ## 4. 하나 스타일 후처리
 
+- `restyle_deck.py`/`build_deck.py`는 범용 PPTX 조작(엔진 겹)만 담당하고, 하나증권 브랜드·문체 판단(규칙 겹)은 승인된 `brand.json`/`voice.json` 주입으로 분리합니다.
 - `restyle-only`, `hana-refine` 분기
 - 표지, 목차, 요약, 비교, 타임라인, 차트, 표와 종결 레이아웃
 - 밀도 초과 시 자동 축소보다 페이지 분할 우선
@@ -48,11 +49,12 @@
 
 ## 6. 렌더·시각 품질
 
-- PowerPoint 우선, LibreOffice 대체 렌더러
-- 슬라이드별 PNG, contact sheet와 render manifest
-- 잘림, 겹침, 정렬, 여백과 밀도 검사
-- 고정 루브릭 기반 비전 평가
+- `render_slides.py`: LibreOffice(`soffice`) → PDF → `pdftoppm` 슬라이드별 이미지, render manifest 생성 (구현 완료, PowerPoint 렌더는 아직 없음)
+- contact sheet 생성 (예정)
+- `quality_check.py`: 잘림, 겹침, 정렬, 여백과 밀도 검사 (예정)
+- `visual_check.py`: 고정 루브릭 기반 비전 평가 (예정)
 - 자동 수정 3~5회 후 사람 확인
+- 검사 순서는 콘텐츠 QA → 구조 QA → 시각 QA 3단계로 둡니다. 계층 분리와 참고 근거는 [ARCHITECTURE.md](ARCHITECTURE.md)를 따릅니다.
 
 종료 조건: 정상 샘플은 통과하고 고의 불량 픽스처는 기대한 검사에서 실패합니다.
 
