@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = ROOT / "hana-ppt-skill" / "scripts"
@@ -30,6 +31,7 @@ RENDER = load_module("render_slides", SCRIPTS_DIR / "render_slides.py")
 TEXT_UNITS = load_module("text_units", SCRIPTS_DIR / "text_units.py")
 VERIFY_EVIDENCE = load_module("verify_evidence_preserved", SCRIPTS_DIR / "verify_evidence_preserved.py")
 RESTYLE = load_module("restyle_deck", SCRIPTS_DIR / "restyle_deck.py")
+BUILD = load_module("build_deck", SCRIPTS_DIR / "build_deck.py")
 
 
 class DocumentValidationTests(unittest.TestCase):
@@ -344,6 +346,101 @@ class VerifyEvidencePreservedTests(unittest.TestCase):
     def test_check_unit_flags_dropped_comparison_marker(self):
         errors = VERIFY_EVIDENCE.check_unit("전년동기 대비 7.3% 증가", "7.3% 증가")
         self.assertTrue(any("비교 기준 누락" in error for error in errors))
+
+
+class BuildDeckTests(unittest.TestCase):
+    DECK_SPEC = {
+        "schema_version": 1,
+        "source": {"path": "x.pptx", "sha256": "0" * 64},
+        "slides": [
+            {
+                "number": 1,
+                "part": "ppt/slides/slide1.xml",
+                "elements": [
+                    {"kind": "shape", "name": "Title", "text": "2026년 1분기 경영실적 Highlights"},
+                    {"kind": "shape", "name": "Bullet1", "text": "당기순이익 전년동기 대비 7.3% 증가"},
+                ],
+                "warnings": [],
+            },
+            {
+                "number": 2,
+                "part": "ppt/slides/slide2.xml",
+                "elements": [
+                    {"kind": "shape", "name": "Title", "text": "실적 요약 표"},
+                    {"kind": "table", "name": "Table1", "rows": [["구분", "1Q26"], ["순이익", "1,234억"]]},
+                ],
+                "warnings": [],
+            },
+            {
+                "number": 3,
+                "part": "ppt/slides/slide3.xml",
+                "elements": [
+                    {"kind": "shape", "name": "Title", "text": "이미지 포함 슬라이드"},
+                    {"kind": "image", "name": "Picture1"},
+                ],
+                "warnings": [],
+            },
+        ],
+        "warnings": [],
+    }
+
+    def _write_deck_spec(self, directory: Path) -> Path:
+        path = Path(directory) / "deck_spec.json"
+        path.write_text(json.dumps(self.DECK_SPEC, ensure_ascii=False), encoding="utf-8")
+        return path
+
+    def test_build_produces_well_formed_xml_for_every_part(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_deck_spec(directory)
+            out_path = Path(directory) / "out.pptx"
+            BUILD.build_deck(deck_spec_path, brand_path, out_path)
+            with zipfile.ZipFile(out_path) as archive:
+                for name in archive.namelist():
+                    if name.endswith(".xml") or name.endswith(".rels"):
+                        ET.fromstring(archive.read(name))  # 예외 없이 파싱되면 정상 XML
+
+    def test_build_places_title_bullets_table_and_reports_unreproduced_image(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_deck_spec(directory)
+            out_path = Path(directory) / "out.pptx"
+            result = BUILD.build_deck(deck_spec_path, brand_path, out_path)
+            with zipfile.ZipFile(out_path) as archive:
+                slide1 = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+                slide2 = archive.read("ppt/slides/slide2.xml").decode("utf-8")
+                slide3 = archive.read("ppt/slides/slide3.xml").decode("utf-8")
+        self.assertIn("2026년 1분기 경영실적 Highlights", slide1)
+        self.assertIn("당기순이익 전년동기 대비 7.3% 증가", slide1)
+        self.assertIn("<a:tbl>", slide2)
+        self.assertIn("1,234억", slide2)
+        self.assertIn("이미지 포함 슬라이드", slide3)
+        self.assertEqual(3, result["slide_count"])
+        self.assertTrue(any("image 요소는 재현하지 않음" in warning for warning in result["warnings"]))
+
+    def test_build_applies_brand_theme_colors(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        brand = json.loads(brand_path.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_deck_spec(directory)
+            out_path = Path(directory) / "out.pptx"
+            BUILD.build_deck(deck_spec_path, brand_path, out_path)
+            with zipfile.ZipFile(out_path) as archive:
+                theme_xml = archive.read("ppt/theme/theme1.xml").decode("utf-8")
+        color_map = RESTYLE.brand_theme_color_map(brand)
+        self.assertIn(f'<a:accent1><a:srgbClr val="{color_map["accent1"]}"/></a:accent1>', theme_xml)
+        self.assertIn(f'<a:dk1><a:srgbClr val="{color_map["dk1"]}"/></a:dk1>', theme_xml)
+
+    def test_build_rejects_unapproved_brand(self):
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_deck_spec(directory)
+            brand_path = Path(directory) / "brand.candidate.json"
+            brand_path.write_text(
+                json.dumps({"status": "candidate", "colors": {}, "typography": {}}), encoding="utf-8"
+            )
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                BUILD.build_deck(deck_spec_path, brand_path, out_path)
 
 
 if __name__ == "__main__":
