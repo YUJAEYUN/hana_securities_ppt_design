@@ -19,7 +19,9 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 - 문체·말투: `assets/voice.json`을 실행 정본으로, `references/voice-and-tone.md`를 판단 근거로 읽는다. `restyle-only`에서는 진단만 하고 원문을 바꾸지 않으며, `hana-refine`에서도 수치·기간·비교 기준을 잠근다.
 - 레이아웃: `references/layout-patterns.md`와 해당 문서군 패턴을 읽는다.
 - PPT 인수: `scripts/ingest_deck.py`로 원본을 변경하지 않고 `deck_spec.json` 인벤토리를 생성한다. 미지원 요소 경고를 손실 없는 변환 성공으로 간주하지 않는다.
-- PPT 후처리: `scripts/restyle_deck.py`가 승인된 `brand.json`의 색상·폰트를 PPTX 테마 파트에 적용한다(`restyle-only`). `hana-refine`은 `references/hana-refine-workflow.md`의 절차(추출 → 에이전트 재작성 → `verify_evidence_preserved`로 수치·비교기준 검증 → 적용)를 따른다. 검증에 실패하면 어떤 슬라이드도 수정하지 않는다. 슬라이드 요소·레이아웃 수준 재구성(표지·목차·비교 등 배치 변경)은 아직 없다. 없는 기능을 있는 것처럼 보고하지 않는다.
+- PPT 후처리(기존 파일 편집): `scripts/restyle_deck.py`가 승인된 `brand.json`의 색상·폰트를 PPTX 테마 파트에 적용한다(`restyle-only`). `hana-refine`은 `references/hana-refine-workflow.md`의 절차(추출 → 에이전트 재작성 → `verify_evidence_preserved`로 수치·비교기준 검증 → 적용)를 따른다. 검증에 실패하면 어떤 슬라이드도 수정하지 않는다.
+- PPT 생성(신규 작성): `scripts/build_deck.py`가 `deck_spec.json`과 승인된 `brand.json`으로 새 PPTX를 만든다. 위치·이미지 데이터가 없는 인벤토리 기반이라 슬라이드마다 제목 + (불릿 또는 표) 하나짜리 단일 레이아웃만 생성하고, 이미지·그래픽 요소는 재현하지 않고 경고로 보고한다.
+- 슬라이드 요소·레이아웃 수준 재구성(표지·목차·비교 등 배치 변경)은 `restyle_deck.py`/`build_deck.py` 둘 다 아직 없다. 없는 기능을 있는 것처럼 보고하지 않는다.
 - PPT 렌더: `scripts/render_slides.py`로 PPTX를 PDF와 슬라이드별 이미지로 변환하고 render manifest를 만든다. `soffice`나 `pdftoppm`이 없으면 명확한 오류로 중단하며 조용히 건너뛰지 않는다.
 - 품질 검사: 기준 이미지 전체 픽셀 일치가 아니라 화면비, 고정 요소, 경계, 정렬, 밀도와 색상 분포를 비교한다. 콘텐츠 QA → 구조 QA → 시각 QA 순서를 따른다.
 

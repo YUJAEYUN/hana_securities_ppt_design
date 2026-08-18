@@ -33,7 +33,8 @@
 - `restyle_deck.py`/`build_deck.py`는 범용 PPTX 조작(엔진 겹)만 담당하고, 하나증권 브랜드·문체 판단(규칙 겹)은 승인된 `brand.json`/`voice.json` 주입으로 분리합니다.
 - `restyle_deck.py`의 `restyle-only`(완료): 테마 파트(`ppt/theme/themeN.xml`)의 색상·폰트만 승인된 `brand.json`으로 교체. 슬라이드 XML은 전혀 읽거나 쓰지 않아 원문 잠금을 구조적으로 보장합니다.
 - `restyle_deck.py`의 `hana-refine`(1차 구현 완료, 텍스트 런 수준): `text_units.py`로 슬라이드 텍스트 런을 추출하고, 에이전트가 `voice.json` 규칙에 따라 다시 쓴 `edits.json`을 `verify_evidence_preserved.py`로 검증(수치·비교기준 보존)한 뒤에만 적용합니다. 검증 실패 시 어떤 슬라이드도 수정하지 않습니다. 절차는 [hana-refine-workflow.md](../hana-ppt-skill/references/hana-refine-workflow.md) 참고.
-- 남은 범위: 표지, 목차, 요약, 비교, 타임라인, 차트, 표 등 슬라이드 요소·레이아웃 수준 재구성(배치·구조 변경)
+- `build_deck.py`(1차 구현 완료, 단일 레이아웃): `deck_spec.json`(텍스트·표 인벤토리)과 승인된 `brand.json`으로 PPTX를 처음부터 새로 만듭니다. 표준 라이브러리만으로 `[Content_Types].xml`부터 테마·슬라이드까지 OOXML 파트를 직접 작성합니다(외부 생성 라이브러리 미사용). deck_spec.json에 위치·이미지 데이터가 없어 슬라이드마다 제목 + (불릿 또는 표) 하나짜리 레이아웃만 만들고, 이미지·그래픽·그룹 요소는 재현하지 않고 경고로만 보고합니다. 표지·목차·비교 등 문서군별 레이아웃은 다루지 않습니다(레이아웃 근거의 사람 승인 대기).
+- 남은 범위: 표지, 목차, 요약, 비교, 타임라인, 차트, 표 등 슬라이드 요소·레이아웃 수준 재구성(배치·구조 변경) — `restyle_deck.py`와 `build_deck.py` 모두 해당
 - 밀도 초과 시 자동 축소보다 페이지 분할 우선
 - 원문·데이터 잠금과 출처 범위 검사(레이아웃 수준까지 확장 필요)
 

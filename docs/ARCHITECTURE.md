@@ -55,6 +55,8 @@ Anthropic이 공개한 pptx 스킬의 흐름(인수 → 편집 → 렌더 → 3�
 
 `hana-refine`은 텍스트를 실제로 다시 써야 해서 같은 방식(코드가 결과를 결정)으로는 안전을 보장할 수 없습니다. 대신 **생성(에이전트)과 검증(엔진)을 분리**합니다. `text_units.py`는 슬라이드의 `<a:t>` 런을 문서 순서 그대로 추출/치환하는 범용 엔진 함수만 제공하고, 실제 문장을 판단해 다시 쓰는 일은 그 결과를 소비하는 에이전트(Claude/Codex 세션)가 합니다. `verify_evidence_preserved.py`는 에이전트가 작성한 수정안을 원문과 대조해 숫자·비교 기준(`전년동기 대비` 등)이 보존됐는지 기계적으로 확인하고, 하나라도 어긋나면 `restyle_deck.py`가 어떤 슬라이드도 쓰지 않습니다. 절차는 [hana-refine-workflow.md](../hana-ppt-skill/references/hana-refine-workflow.md)에 있습니다.
 
+`build_deck.py`는 기존 파일을 편집하는 대신 OOXML 파트를 처음부터 문자열로 작성합니다. `python-pptx`나 `pptxgenjs` 같은 생성 라이브러리를 새 의존성으로 들이지 않고, 이 저장소의 다른 엔진 스크립트와 같은 방식(표준 라이브러리 + 직접 작성한 XML)을 씁니다. 테마 색상·폰트는 `restyle_deck.py`의 `brand_theme_color_map`/`brand_theme_fonts`를 그대로 가져다 써서 매핑 규칙을 한 곳에만 둡니다. **검증 방법에 대한 기록**: 이 개발 환경의 `soffice --headless`는 트리비얼한 `.txt` 파일 변환도 실패하는 샌드박스 제약이 있어(파일 유효성과 무관), 생성 결과의 구조적 정합성은 개발 중 임시로 설치했다가 제거한 `python-pptx`로 열어 슬라이드·표·텍스트가 의도대로 나오는지 확인했습니다. `python-pptx`는 저장소 의존성이 아니며 런타임에 쓰이지 않습니다.
+
 두 실행 모드를 제공합니다.
 
 - `restyle-only`: 원문, 수치와 데이터는 잠그고 디자인만 개선
