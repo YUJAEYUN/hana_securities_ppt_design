@@ -296,10 +296,29 @@ class TextUnitsTests(unittest.TestCase):
         )
         units = TEXT_UNITS.extract_text_units(slide_xml)
         self.assertEqual(["굵은 제목 ", "본문 불릿"], [unit["text"] for unit in units])
+        self.assertEqual([None, None], [unit["placeholder_type"] for unit in units])
 
         updated_xml = TEXT_UNITS.apply_text_edits(slide_xml, {1: "새 불릿 내용"})
         self.assertIn('<a:rPr b="1"/><a:t xml:space="preserve">굵은 제목 </a:t>', updated_xml)
         self.assertIn("<a:t>새 불릿 내용</a:t>", updated_xml)
+
+    def test_extract_reports_placeholder_type_and_shape_name_as_hints(self):
+        slide_xml = (
+            '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+            'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+            "<p:cSld><p:spTree>"
+            "<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"제목 1\"/><p:nvPr>"
+            '<p:ph type="title"/></p:nvPr></p:nvSpPr>'
+            "<p:txBody><a:p><a:r><a:t>2026년 1분기 Highlights</a:t></a:r></a:p></p:txBody></p:sp>"
+            '<p:sp><p:nvSpPr><p:cNvPr id="3" name="TextBox 2"/><p:nvPr/></p:nvSpPr>'
+            "<p:txBody><a:p><a:r><a:t>면책 문구 원문</a:t></a:r></a:p></p:txBody></p:sp>"
+            "</p:spTree></p:cSld></p:sld>"
+        )
+        units = TEXT_UNITS.extract_text_units(slide_xml)
+        self.assertEqual("title", units[0]["placeholder_type"])
+        self.assertEqual("제목 1", units[0]["shape_name"])
+        self.assertIsNone(units[1]["placeholder_type"])
+        self.assertEqual("TextBox 2", units[1]["shape_name"])
 
     def test_apply_text_edits_escapes_special_characters(self):
         slide_xml = (
