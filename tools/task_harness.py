@@ -205,6 +205,20 @@ def validate_assets() -> list[str]:
         modes = voice.get("mode_policy", {})
         if "원문" not in modes.get("restyle-only", "") or "새 사실" not in modes.get("hana-refine", ""):
             errors.append("voice.json의 실행 모드별 콘텐츠 보존 정책이 불완전합니다.")
+    layouts_path = ASSETS_ROOT / "layouts.json"
+    if layouts_path.is_file():
+        layouts = load_json(layouts_path)
+        layouts_sources = set(layouts.get("provenance", {}).get("source_ids", []))
+        if layouts.get("status") != "approved":
+            errors.append("layouts.json의 status는 approved여야 합니다.")
+        if not layouts.get("approval", {}).get("record"):
+            errors.append("layouts.json에 사람 승인 기록이 없습니다.")
+        if layouts_sources - {item["id"] for item in sources["documents"]}:
+            errors.append(
+                f"layouts.json의 미등록 출처: {sorted(layouts_sources - {item['id'] for item in sources['documents']})}"
+            )
+        if layouts_sources & excluded:
+            errors.append(f"layouts.json이 제외 레퍼런스를 사용함: {sorted(layouts_sources & excluded)}")
     return errors
 
 

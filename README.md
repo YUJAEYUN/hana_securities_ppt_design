@@ -4,7 +4,7 @@
 
 외부 에이전트나 범용 PPT 도구가 만든 초안을 하나증권식 말투·구조·디자인으로 다듬고, 렌더링 결과까지 검사하기 위한 후처리 스킬 저장소입니다.
 
-> 현재 단계: PPTX 내용을 `deck_spec.json`으로 인수하는 MVP가 있습니다. 사용자가 로컬 HFG IR 2건을 운영 기준으로 승인해 출처와 한계를 명시한 `brand.json`과 `voice.json`이 있으며, PPT 후처리·렌더 엔진은 아직 구현되지 않았습니다.
+> 현재 단계: PPTX 내용을 `deck_spec.json`으로 인수하고(`ingest_deck.py`), 승인된 `brand.json`/`voice.json`/`layouts.json`(모두 로컬 HFG IR 2건 기반, 하나증권 공식 CI 아님)으로 테마 적용·검증된 텍스트 재작성·신규 PPTX 생성·LibreOffice 렌더까지 가능합니다. 슬라이드 요소·레이아웃 배치 수준 재구성과 구조/시각 자동 품질 검사는 아직 없습니다.
 
 ## 전체 구조
 
@@ -86,7 +86,7 @@ python tools/task_harness.py check
 
 ## 중요한 현재 제약
 
-- `brand.json`은 사용자 승인된 HFG IR 기반 운영 프로필이며 하나증권 공식 CI 규격이 아닙니다.
-- `brand.candidate.json`과 `layouts.candidate.json`은 추출·레이아웃 검토 기록으로 남아 있습니다.
+- `brand.json`, `voice.json`, `layouts.json`은 모두 사용자 승인된 HFG IR 기반 운영 프로필이며 하나증권 공식 CI·문체·레이아웃 규격이 아닙니다.
+- `brand.candidate.json`과 `layouts.candidate.json`은 승인 전 추출·검토 기록으로 남아 있습니다.
 - 하나증권 리서치 자료 한 건은 예외 사례로 지정돼 스타일 학습에서 제외됐습니다.
-- 승인된 `brand.json`, PPT 변환 스크립트, 폰트 임베딩과 렌더 검증은 아직 없습니다.
+- 슬라이드 요소·레이아웃 배치 수준 재구성, 폰트 임베딩, 구조/시각 자동 품질 검사는 아직 없습니다.
