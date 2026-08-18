@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""deck_spec.json과 승인된 brand.json으로 새 PPTX를 생성합니다.
+"""deck_spec.json과 승인된 brand.json/layouts.json으로 새 PPTX를 생성합니다.
 
 deck_spec.json은 텍스트·표 인벤토리만 담고 있어(위치·이미지 데이터 없음) 원본을 그대로
-재현할 수 없다. 이 v1은 슬라이드마다 제목 하나 + (불릿 목록 또는 표 하나)만 배치하는
-단일 레이아웃만 만든다. 이미지·그래픽·그룹 요소는 재현하지 않고 build 결과의 warnings로
-보고한다. 표지·목차·비교 같은 문서군별 레이아웃은 여기 포함하지 않는다
-(레이아웃 근거가 사람 승인 전이라 ROADMAP.md에서 별도로 미룬 범위다).
+재현할 수 없다. `--layouts`/`--layout-plan`을 주지 않으면 슬라이드마다 제목 + (불릿 또는 표)
+하나짜리 기본(data-body) 레이아웃만 만든다. `--layout-plan`으로 슬라이드별 역할(승인된
+layouts.json의 패턴 키)을 지정하면 cover/section-divider/disclaimer 역할별로 다르게 배치한다.
+역할 판단(어떤 슬라이드가 표지인지 등)은 에이전트/사람이 하고, 이 스크립트는 그 판단을
+기계적으로 실행만 한다 — hana-refine의 edits.json과 같은 원칙이다. strategic-kpi,
+executive-summary, closing 역할별 배치와 장식 요소(적색 선, 원형 모티프)는 아직 없다.
+이미지·그래픽·그룹 요소는 재현하지 않고 build 결과의 warnings로 보고한다.
 """
 
 from __future__ import annotations
@@ -221,10 +224,31 @@ def _escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+def _paragraph(text: str, *, align: str | None = None) -> str:
+    pPr = f'<a:pPr algn="{align}"/>' if align else ""
+    return f"<a:p>{pPr}<a:r><a:t>{_escape(text)}</a:t></a:r></a:p>"
+
+
 def _bullets_body(bullets: list[str]) -> str:
     if not bullets:
         return "<a:p/>"
-    return "".join(f"<a:p><a:r><a:t>{_escape(text)}</a:t></a:r></a:p>" for text in bullets)
+    return "".join(_paragraph(text) for text in bullets)
+
+
+def _content_placeholder(inner_xml: str) -> str:
+    return (
+        '<p:sp><p:nvSpPr><p:cNvPr id="3" name="Content"/><p:cNvSpPr/>'
+        '<p:nvPr><p:ph idx="1"/></p:nvPr></p:nvSpPr><p:spPr/>'
+        f"<p:txBody><a:bodyPr/><a:lstStyle/>{inner_xml}</p:txBody></p:sp>"
+    )
+
+
+def _title_shape(title: str, *, align: str | None = None) -> str:
+    return (
+        '<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/>'
+        '<p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr/>'
+        f"<p:txBody><a:bodyPr/><a:lstStyle/>{_paragraph(title, align=align)}</p:txBody></p:sp>"
+    )
 
 
 def _table_xml(rows: list[list[str]], cx: int, cy: int) -> str:
@@ -256,10 +280,11 @@ def _table_xml(rows: list[list[str]], cx: int, cy: int) -> str:
     )
 
 
-def _slide_content(slide: dict, body_cx: int, body_cy: int) -> tuple[str, list[str]]:
+def _parse_slide(slide: dict) -> tuple[str, list[str], list[list[str]] | None, list[str]]:
+    """요소를 (제목, 나머지 텍스트, 표 행, 경고)로 나눈다. 제목은 첫 텍스트 요소다."""
     warnings: list[str] = []
     title = ""
-    bullets: list[str] = []
+    extra_texts: list[str] = []
     table_rows: list[list[str]] | None = None
     for element in slide.get("elements", []):
         kind = element.get("kind")
@@ -269,21 +294,59 @@ def _slide_content(slide: dict, body_cx: int, body_cy: int) -> tuple[str, list[s
         text = element.get("text")
         if not text:
             if kind in {"image", "graphic", "group"}:
-                warnings.append(f"슬라이드 {slide['number']}: {kind} 요소는 재현하지 않음 ({element.get('name', '')})")
+                warnings.append(f"{kind} 요소는 재현하지 않음 ({element.get('name', '')})")
             continue
         if not title:
             title = text
         else:
-            bullets.append(text)
-    body_xml = (
-        _table_xml(table_rows, body_cx, body_cy)
-        if table_rows
-        else (
-            '<p:sp><p:nvSpPr><p:cNvPr id="3" name="Content"/><p:cNvSpPr/>'
-            '<p:nvPr><p:ph idx="1"/></p:nvPr></p:nvSpPr><p:spPr/>'
-            f"<p:txBody><a:bodyPr/><a:lstStyle/>{_bullets_body(bullets)}</p:txBody></p:sp>"
-        )
-    )
+            extra_texts.append(text)
+    return title, extra_texts, table_rows, warnings
+
+
+# ROLE_ALIGN: layouts.json의 배치 힌트(예: section-divider의 "center") 중
+# 이 v1이 실제로 반영하는 부분만 옮겨 적는다. 나머지(장식 모티프 등)는 아직 없다.
+ROLE_ALIGN = {"section-divider": "ctr"}
+
+
+def _render_cover(extra_texts: list[str]) -> tuple[str, list[str]]:
+    warnings: list[str] = []
+    subtitle = extra_texts[0] if extra_texts else ""
+    if len(extra_texts) > 1:
+        warnings.append("표지 레이아웃은 제목·부제만 배치하며 나머지 텍스트는 생략됨")
+    inner = _paragraph(subtitle) if subtitle else "<a:p/>"
+    return _content_placeholder(inner), warnings
+
+
+def _render_section_divider(extra_texts: list[str], table_rows: list[list[str]] | None) -> tuple[str, list[str]]:
+    warnings: list[str] = []
+    if extra_texts or table_rows:
+        warnings.append("섹션 구분 레이아웃은 본문을 배치하지 않는다(layouts.json 금지 규칙) — 본문/표 생략됨")
+    return _content_placeholder("<a:p/>"), warnings
+
+
+def _render_disclaimer(extra_texts: list[str]) -> tuple[str, list[str]]:
+    paragraphs = "".join(_paragraph(text) for text in extra_texts) or "<a:p/>"
+    return _content_placeholder(paragraphs), []
+
+
+def _render_data_body(extra_texts: list[str], table_rows: list[list[str]] | None, body_cx: int, body_cy: int) -> tuple[str, list[str]]:
+    if table_rows:
+        return _table_xml(table_rows, body_cx, body_cy), []
+    return _content_placeholder(_bullets_body(extra_texts)), []
+
+
+def _render_slide(role: str, slide: dict, body_cx: int, body_cy: int) -> tuple[str, list[str]]:
+    title, extra_texts, table_rows, warnings = _parse_slide(slide)
+    if role == "cover":
+        body_xml, role_warnings = _render_cover(extra_texts)
+    elif role == "section-divider":
+        body_xml, role_warnings = _render_section_divider(extra_texts, table_rows)
+    elif role == "disclaimer":
+        body_xml, role_warnings = _render_disclaimer(extra_texts)
+    else:
+        body_xml, role_warnings = _render_data_body(extra_texts, table_rows, body_cx, body_cy)
+    warnings.extend(role_warnings)
+    title_xml = _title_shape(title, align=ROLE_ALIGN.get(role))
     slide_xml = (
         XML_HEADER
         + '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
@@ -291,16 +354,14 @@ def _slide_content(slide: dict, body_cx: int, body_cy: int) -> tuple[str, list[s
         'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
         '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
         "<p:grpSpPr/>"
-        '<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/>'
-        '<p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr/>'
-        f"<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>{_escape(title)}</a:t></a:r></a:p></p:txBody></p:sp>"
-        f"{body_xml}"
+        f"{title_xml}{body_xml}"
         "</p:spTree></p:cSld></p:sld>"
     )
-    return slide_xml, warnings
+    return slide_xml, [f"슬라이드 {slide['number']}: {warning}" for warning in warnings]
 
 
-def build(deck_spec: dict, brand: dict) -> dict[str, bytes]:
+def build(deck_spec: dict, brand: dict, layout_plan: dict[int, str] | None = None) -> dict[str, object]:
+    layout_plan = layout_plan or {}
     color_map = restyle_deck.brand_theme_color_map(brand)
     major, minor = restyle_deck.brand_theme_fonts(brand)
     scheme_defaults = {
@@ -375,7 +436,8 @@ def build(deck_spec: dict, brand: dict) -> dict[str, bytes]:
 
     warnings: list[str] = []
     for slide in slides:
-        slide_xml, slide_warnings = _slide_content(slide, body_cx, body_cy)
+        role = layout_plan.get(slide["number"], "data-body")
+        slide_xml, slide_warnings = _render_slide(role, slide, body_cx, body_cy)
         warnings.extend(slide_warnings)
         parts[f"ppt/slides/slide{slide['number']}.xml"] = slide_xml.encode("utf-8")
         parts[f"ppt/slides/_rels/slide{slide['number']}.xml.rels"] = SLIDE_RELS_TEMPLATE.encode("utf-8")
@@ -383,12 +445,35 @@ def build(deck_spec: dict, brand: dict) -> dict[str, bytes]:
     return {"parts": parts, "warnings": warnings}
 
 
-def build_deck(deck_spec_path: Path, brand_path: Path, out_path: Path) -> dict[str, object]:
+def load_layout_plan(path: Path) -> dict[int, str]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    return {int(slide_number): role for slide_number, role in raw.items()}
+
+
+def build_deck(
+    deck_spec_path: Path,
+    brand_path: Path,
+    out_path: Path,
+    *,
+    layouts_path: Path | None = None,
+    layout_plan_path: Path | None = None,
+) -> dict[str, object]:
     deck_spec = json.loads(deck_spec_path.read_text(encoding="utf-8"))
-    brand = json.loads(brand_path.read_text(encoding="utf-8"))
-    if brand.get("status") != "approved":
-        raise ValueError("승인되지 않은 brand.json은 실행에 사용할 수 없습니다.")
-    result = build(deck_spec, brand)
+    brand = restyle_deck.load_approved_json(brand_path, "brand.json")
+    layout_plan: dict[int, str] = {}
+    if layouts_path is not None or layout_plan_path is not None:
+        if layouts_path is None or layout_plan_path is None:
+            raise ValueError("역할별 레이아웃 배치를 쓰려면 --layouts와 --layout-plan을 모두 지정해야 합니다.")
+        layouts = restyle_deck.load_approved_json(layouts_path, "layouts.json")
+        layout_plan = load_layout_plan(layout_plan_path)
+        slide_numbers = {slide["number"] for slide in deck_spec.get("slides", [])}
+        unknown_slides = set(layout_plan) - slide_numbers
+        if unknown_slides:
+            raise ValueError(f"deck_spec에 없는 슬라이드 번호: {sorted(unknown_slides)}")
+        unknown_roles = set(layout_plan.values()) - set(layouts["patterns"])
+        if unknown_roles:
+            raise ValueError(f"layouts.json에 없는 역할: {sorted(unknown_roles)}")
+    result = build(deck_spec, brand, layout_plan)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, data in result["parts"].items():
@@ -397,13 +482,23 @@ def build_deck(deck_spec_path: Path, brand_path: Path, out_path: Path) -> dict[s
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="deck_spec.json과 brand.json으로 새 PPTX를 생성합니다.")
+    parser = argparse.ArgumentParser(description="deck_spec.json과 brand.json/layouts.json으로 새 PPTX를 생성합니다.")
     parser.add_argument("deck_spec", type=Path)
     parser.add_argument("--brand", type=Path, required=True)
     parser.add_argument("-o", "--output", type=Path, required=True)
+    parser.add_argument("--layouts", type=Path, help="역할별 배치에 필요한 승인된 layouts.json")
+    parser.add_argument(
+        "--layout-plan", type=Path, help='슬라이드별 역할 JSON, 예: {"1": "cover", "3": "disclaimer"}'
+    )
     args = parser.parse_args()
     try:
-        result = build_deck(args.deck_spec, args.brand, args.output)
+        result = build_deck(
+            args.deck_spec,
+            args.brand,
+            args.output,
+            layouts_path=args.layouts,
+            layout_plan_path=args.layout_plan,
+        )
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
     print(f"생성 완료: {args.output} (슬라이드 {result['slide_count']}개, 경고 {len(result['warnings'])}건)")
