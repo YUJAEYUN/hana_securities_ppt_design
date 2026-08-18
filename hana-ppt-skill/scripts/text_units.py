@@ -53,12 +53,53 @@ def slide_part_for_number(archive: zipfile.ZipFile, slide_number: int) -> str:
     return rels[rel_id]
 
 
+def _build_parent_map(root: ET.Element) -> dict[ET.Element, ET.Element]:
+    return {child: parent for parent in root.iter() for child in parent}
+
+
+def _enclosing_shape(node: ET.Element, parent_map: dict[ET.Element, ET.Element]) -> ET.Element | None:
+    current = parent_map.get(node)
+    while current is not None:
+        if current.tag.rsplit("}", 1)[-1] in {"sp", "graphicFrame", "pic", "grpSp"}:
+            return current
+        current = parent_map.get(current)
+    return None
+
+
+def _shape_name(shape: ET.Element) -> str:
+    name_node = shape.find(".//p:cNvPr", NS)
+    return name_node.attrib.get("name", "") if name_node is not None else ""
+
+
+def _placeholder_type(shape: ET.Element) -> str | None:
+    ph = shape.find(".//p:ph", NS)
+    if ph is None:
+        return None
+    return ph.attrib.get("type", "body")
+
+
 def extract_text_units(slide_xml: str) -> list[dict[str, object]]:
+    """텍스트 런을 문서 순서대로 추출한다.
+
+    shape_name/placeholder_type은 에이전트가 역할(제목/본문 등)을 가늠하는 참고용 힌트일 뿐이다.
+    이 저장소의 레퍼런스 덱에서 면책 문구는 placeholder 없이 자유 텍스트 상자로 그려지므로,
+    placeholder_type만으로 면책 문구를 걸러낼 수는 없다. 최종 판단은 항상 내용을 읽고 내린다.
+    """
     root = ET.fromstring(slide_xml)
-    return [
-        {"index": index, "text": node.text or ""}
-        for index, node in enumerate(root.findall(".//a:t", NS))
-    ]
+    parent_map = _build_parent_map(root)
+    units: list[dict[str, object]] = []
+    for index, node in enumerate(root.findall(".//a:t", NS)):
+        shape = _enclosing_shape(node, parent_map)
+        is_shape = shape is not None and shape.tag.rsplit("}", 1)[-1] == "sp"
+        units.append(
+            {
+                "index": index,
+                "text": node.text or "",
+                "shape_name": _shape_name(shape) if is_shape else "",
+                "placeholder_type": _placeholder_type(shape) if is_shape else None,
+            }
+        )
+    return units
 
 
 def _escape(text: str) -> str:

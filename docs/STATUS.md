@@ -4,7 +4,7 @@
 
 - 갱신일: `2026-08-18`
 - 현재 단계: `brand-profile-approved`
-- 요약: 로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json과 voice.json을 확정했다. 하나증권 공식 CI·공식 문체로 주장하지 않는다. PPT 처리 계층을 엔진(범용 PPTX 조작)과 규칙(하나증권 브랜드·문체) 두 겹으로 분리하기로 하고, render_slides.py에 이어 restyle_deck.py(restyle-only: 테마 색상·폰트)와 hana-refine(텍스트 런 수준, 에이전트 재작성 + verify_evidence_preserved 수치·비교기준 검증)을 추가했다. 슬라이드 요소·레이아웃 수준 재구성, build_deck.py, 구조/시각 품질 검사 구현은 남아 있다.
+- 요약: 로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json과 voice.json을 확정했다. 하나증권 공식 CI·공식 문체로 주장하지 않는다. PPT 처리 계층을 엔진(범용 PPTX 조작)과 규칙(하나증권 브랜드·문체) 두 겹으로 분리하기로 하고, render_slides.py에 이어 restyle_deck.py(restyle-only: 테마 색상·폰트)와 hana-refine(텍스트 런 수준, 에이전트 재작성 + verify_evidence_preserved 수치·비교기준 검증)을 추가했다. text_units.py는 이제 placeholder_type/shape_name도 참고용 힌트로 함께 추출해 에이전트의 역할 판단을 보조한다. 슬라이드 요소·레이아웃 수준 재구성, build_deck.py, 구조/시각 품질 검사 구현은 남아 있다.
 
 ## 단계별 상태
 
@@ -27,10 +27,9 @@
 
 ## 다음 작업
 
-1. restyle_deck.py를 슬라이드 요소·레이아웃 수준(표지, 목차, 요약, 비교, 타임라인, 차트, 표 배치)까지 확장한다.
-2. hana-refine의 역할 분류(제목/불릿/면책 등)를 placeholder 타입 등으로 보조 판별해 에이전트 재작성 단계의 실수를 줄인다.
-3. build_deck.py로 deck_spec.json에서 새 PPTX를 재생성하는 경로를 구현한다.
-4. 실제 PPTX 회귀 픽스처로 인수 MVP의 차트·SmartArt 경고와 손실 보고를 보강한다.
-5. CI 가이드를 확보하면 로고 보호영역과 공식 색상 수치만 별도 재검수한다.
-6. render_slides.py 출력을 입력으로 받는 quality_check.py(구조 QA)와 visual_check.py(시각 QA)를 구현하고, 콘텐츠 QA → 구조 QA → 시각 QA 3단계 파이프라인을 완성한다.
-7. contact sheet 생성과 PowerPoint 우선 렌더 경로를 추가한다.
+1. restyle_deck.py를 슬라이드 요소·레이아웃 수준(표지, 목차, 요약, 비교, 타임라인, 차트, 표 배치)까지 확장한다. layouts 단계가 사람 승인을 받은 뒤 진행한다.
+2. build_deck.py로 deck_spec.json에서 새 PPTX를 재생성하는 경로를 구현한다.
+3. 실제 PPTX 회귀 픽스처로 인수 MVP의 차트·SmartArt 경고와 손실 보고를 보강한다.
+4. CI 가이드를 확보하면 로고 보호영역과 공식 색상 수치만 별도 재검수한다.
+5. render_slides.py 출력을 입력으로 받는 quality_check.py(구조 QA)와 visual_check.py(시각 QA)를 구현하고, 콘텐츠 QA → 구조 QA → 시각 QA 3단계 파이프라인을 완성한다.
+6. contact sheet 생성과 PowerPoint 우선 렌더 경로를 추가한다.

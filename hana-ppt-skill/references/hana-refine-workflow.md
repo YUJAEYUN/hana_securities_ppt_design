@@ -7,12 +7,18 @@
 ## 절차
 
 1. **추출**: `python scripts/text_units.py deck.pptx --slide N -o units.json`
-   - 슬라이드 N의 모든 텍스트 런을 문서 순서 그대로 `{index, text}` 배열로 뽑는다.
+   - 슬라이드 N의 모든 텍스트 런을 문서 순서 그대로 `{index, text, shape_name, placeholder_type}` 배열로 뽑는다.
+   - `placeholder_type`은 OOXML `<p:ph>`에서 읽은 값(`title`, `body` 등)이고, `shape_name`은 도형 이름이다.
+     둘 다 **참고용 힌트**일 뿐이다. 등록된 레퍼런스 덱에서 면책 문구는 placeholder 없이 자유 텍스트 상자로
+     그려지므로 `placeholder_type`만으로 면책 문구를 걸러낼 수 없다.
 2. **재작성(에이전트)**: `units.json`과 `assets/voice.json`의 역할별 패턴(`roles`), 금지 표현
    (`lexicon.avoid_without_evidence`), 근거 규칙(`evidence_rules`)을 기준으로 각 런의 새 텍스트를 판단한다.
+   - `placeholder_type == "title"`이면 제목 역할일 가능성이 높지만, 그 밖의 역할(메시지 헤드라인, 실적 불릿,
+     실행 방안, 면책)은 `shape_name`과 실제 텍스트 내용을 함께 읽고 사람처럼 판단해야 한다.
    - 면책(disclaimer) 역할로 보이는 런은 edits에 포함하지 않는다. 원문을 완전한 문장으로 보존해야 한다.
    - 수치, 단위, 기간, 비교 기준, 고유명사는 새로 만들거나 지우지 않는다.
-   - `{"슬라이드번호": {"런_index": "새 텍스트"}}` 형식으로 `edits.json`을 작성한다.
+   - `{"슬라이드번호": {"런_index": "새 텍스트"}}` 형식으로 `edits.json`을 작성한다. `units.json`의 부가 필드
+     (`shape_name`, `placeholder_type`)는 판단에만 쓰고 `edits.json`에는 넣지 않는다.
 3. **검증 적용**: `python scripts/restyle_deck.py deck.pptx --brand assets/brand.json --voice assets/voice.json --mode hana-refine --edits edits.json -o out.pptx`
    - 내부적으로 슬라이드마다 `verify_evidence_preserved.verify()`를 먼저 실행한다.
    - 숫자가 하나라도 늘거나 줄면, 또는 비교 기준 표현(`전년동기 대비`, `전분기 대비`, `YoY`, `QoQ`)이 사라지면
