@@ -67,6 +67,16 @@ class DocumentValidationTests(unittest.TestCase):
         self.assertIn("새 사실", voice["mode_policy"]["hana-refine"])
         self.assertTrue(voice["roles"]["disclaimer"]["must_preserve_verbatim_in_restyle_only"])
 
+    def test_approved_layouts_are_traceable_and_non_excluded(self):
+        layouts = json.loads((ROOT / "hana-ppt-skill" / "assets" / "layouts.json").read_text())
+        sources = json.loads((ROOT / "hana-ppt-skill" / "assets" / "reference-decks" / "sources.json").read_text())
+        excluded = {item["id"] for item in sources["documents"] if item.get("style_status") == "excluded-by-user"}
+        self.assertEqual("approved", layouts["status"])
+        self.assertTrue(layouts["approval"]["record"])
+        self.assertFalse(set(layouts["provenance"]["source_ids"]) & excluded)
+        self.assertFalse(layouts["official_hana_securities_layout"])
+        self.assertTrue(layouts["patterns"]["disclaimer"]["must_preserve_verbatim_in_restyle_only"])
+
     def test_inline_svg_is_allowed_in_markdown(self):
         target = ROOT / "tests" / "temporary-inline-svg.md"
         target.write_text('<svg aria-label="diagram"><text>valid</text></svg>\n', encoding="utf-8")

@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "status": "approved",
+  "name": "하나증권 운영 레이아웃 프로필 (HFG IR 기반)",
+  "scope": "hana-securities-presentation-operational-profile",
+  "official_hana_securities_layout": false,
+  "approved_at": "2026-08-18",
+  "approval": {
+    "actor": "user",
+    "record": "레이아웃 후보 6종(표지/전략 KPI/경영실적 하이라이트/섹션 구분/데이터 본문/면책과 종결)과 금지 규칙 전체를 brand.json과 동일한 방식으로 하나증권 운영 기준으로 승인",
+    "limitations_acknowledged": [
+      "하나증권 자체 대표 자료가 아니라 하나금융그룹(그룹사) IR 2건에서 관찰한 레이아웃 문법이다.",
+      "유일한 하나증권 자료(리서치센터 8월 시장전망)는 사용자가 예외 사례로 지정해 이 승인 범위에서 계속 제외한다.",
+      "그룹 IR의 원형 모티프·슬로건처럼 그룹 고유 문법은 하나증권 자료에 무조건 복제하지 않는다."
+    ]
+  },
+  "provenance": {
+    "method": "references/hfg-ir-patterns.md에 정리된 관찰 결과를 문서군·슬라이드 유형별 구조로 재정리하고 사용자 승인 범위로 확정",
+    "source_ids": ["hfg-1q26-kor", "hfg-1h26-kor"],
+    "excluded_source_ids": ["hana-securities-2026-08-market-strategy"],
+    "candidate_input": "layouts.candidate.json",
+    "analysis": "reference-analysis.json",
+    "human_readable": "references/hfg-ir-patterns.md"
+  },
+  "selection_order": [
+    "preserve-source-aspect-ratio",
+    "document-family",
+    "slide-type",
+    "content-density",
+    "visual-validation"
+  ],
+  "document_families": {
+    "hfg-ir": {
+      "types": [
+        "cover",
+        "strategic-kpi",
+        "executive-summary",
+        "section-divider",
+        "chart",
+        "table",
+        "affiliate-highlight",
+        "disclaimer",
+        "closing"
+      ]
+    }
+  },
+  "patterns": {
+    "cover": {
+      "elements": [
+        {"element": "logo", "placement": "top-left"},
+        {"element": "title-and-date", "placement": "left"},
+        {"element": "thin-red-rule", "placement": "accent-line"},
+        {"element": "green-circle-motif", "placement": "right-or-bottom"},
+        {"element": "slogan", "placement": "small-supporting"}
+      ],
+      "evidence_pages": {"hfg-1q26-kor": [1], "hfg-1h26-kor": [1]}
+    },
+    "strategic-kpi": {
+      "elements": [
+        {"element": "kpi-circles", "count": "2-4", "placement": "large-first-read"},
+        {"element": "caption", "placement": "short-below"}
+      ],
+      "evidence_pages": {"hfg-1h26-kor": [2]},
+      "note": "1Q26에는 이 슬라이드 유형이 없어 근거가 1H26 단독이다."
+    },
+    "executive-summary": {
+      "elements": [
+        {"element": "kpi-card", "style": "green-outline", "placement": "left-column"},
+        {"element": "explanation-module", "style": "gray", "placement": "right-column-stacked"}
+      ],
+      "evidence_pages": {"hfg-1q26-kor": [2], "hfg-1h26-kor": [3]}
+    },
+    "section-divider": {
+      "elements": [
+        {"element": "section-title", "color": "primary_green", "placement": "center"},
+        {"element": "circle-motif", "style": "pale-large", "placement": "center-background"},
+        {"element": "mini-toc", "placement": "right-small"}
+      ],
+      "prohibited_content": ["data", "long-body-text"],
+      "evidence_pages": {"hfg-1q26-kor": [3, 13, 18], "hfg-1h26-kor": [4, 14, 19]}
+    },
+    "data-body": {
+      "roles": ["chart", "table"],
+      "elements": [
+        {"element": "nav-row", "placement": "top-small"},
+        {"element": "title", "placement": "top-left"},
+        {"element": "divider-rule", "color": "pale_mint", "placement": "under-title"},
+        {"element": "chart-or-table-module", "count": "2-4", "placement": "grid"},
+        {"element": "comment-box", "style": "gray", "placement": "right-optional"}
+      ],
+      "chart_colors": {"primary": "deep_teal", "secondary": "pale_mint", "exception_marker": "alert_red"},
+      "table_colors": {"header": "deep_teal", "body": "background", "supporting_text": "gray"},
+      "evidence_pages": {
+        "hfg-1q26-kor": [4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22, 23],
+        "hfg-1h26-kor": [5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 20, 21, 22, 23, 24]
+      }
+    },
+    "disclaimer": {
+      "elements": [
+        {"element": "background", "color": "background"},
+        {"element": "label", "text": "DISCLAIMER", "color": "primary_green", "placement": "top-left"},
+        {"element": "body-text", "style": "long-gray"},
+        {"element": "contact-info", "placement": "bottom"}
+      ],
+      "must_preserve_verbatim_in_restyle_only": true,
+      "evidence_pages": {"hfg-1q26-kor": [24], "hfg-1h26-kor": [25]}
+    },
+    "closing": {
+      "elements": [
+        {"element": "background", "color": "background", "margin": "large"},
+        {"element": "logo", "placement": "center-or-as-source"}
+      ],
+      "evidence_pages": {"hfg-1q26-kor": [25], "hfg-1h26-kor": [26]}
+    }
+  },
+  "prohibited": [
+    "모든 페이지에 표지용 원형 모티프를 반복하지 않는다.",
+    "표 안에서 다수의 강조색을 경쟁시키지 않는다.",
+    "리서치 표지의 남색 사진 배경과 대형 헤드라인을 일반 IR 본문에 혼합하지 않는다.",
+    "원본 화면비가 다른 자료를 강제로 잘라 맞추지 않는다."
+  ],
+  "density_policy": {
+    "low": "single-message",
+    "medium": "two-to-four-modules",
+    "high": "split-slide-before-reducing-font-below-minimum"
+  },
+  "aspect_ratio_policy": "입력 화면비를 우선 보존한다. 기준 이미지 비교는 같은 화면비끼리만 한다."
+}

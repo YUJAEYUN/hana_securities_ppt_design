@@ -80,7 +80,9 @@ Anthropic이 공개한 pptx 스킬의 흐름(인수 → 편집 → 렌더 → 3�
 | 진행 상태 | `project-state.json` | `docs/STATUS.md` |
 | 승인 브랜드 | `assets/brand.json` | 문서·PPT 산출물 |
 | 승인 운영 문체 | `assets/voice.json` | 제목·불릿 문체 진단 및 향후 변환 |
+| 승인 운영 레이아웃 | `assets/layouts.json` | `restyle_deck.py`/`build_deck.py`의 향후 레이아웃 수준 재구성 |
 | 검수 전 브랜드 | `assets/brand.candidate.json` | `references/design-tokens.md` |
+| 검수 전 레이아웃 | `assets/layouts.candidate.json` | `references/hfg-ir-patterns.md` |
 | 레퍼런스 포함 여부 | `assets/reference-decks/sources.json` | 분석·기준 이미지 목록 |
 | 스킬 실행 절차 | `hana-ppt-skill/SKILL.md` | 로컬 Codex 설치본 |
 | PPT 내용 | 향후 `deck_spec.json` | PPTX·PDF·PNG |

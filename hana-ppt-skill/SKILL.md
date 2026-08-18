@@ -8,8 +8,8 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 ## 작업 전 확인
 
 1. 이 스킬의 소스 저장소에서 개발할 때는 저장소 루트의 `project-state.json`과 `docs/STATUS.md`를 읽는다.
-2. `assets/brand.json`이 없으면 승인된 운영 브랜드 규칙이 없는 것으로 처리한다. 파일이 있어도 `official_ci_specification`과 승인 범위를 확인한다.
-3. `assets/brand.candidate.json`과 `assets/layouts.candidate.json`은 검토·분석에만 사용하고 하나증권 공식 스타일로 단정하지 않는다.
+2. `assets/brand.json`이 없으면 승인된 운영 브랜드 규칙이 없는 것으로 처리한다. 파일이 있어도 `official_ci_specification`과 승인 범위를 확인한다. `assets/layouts.json`도 같은 방식으로 확인한다(`official_hana_securities_layout`과 승인 범위).
+3. `assets/brand.candidate.json`과 `assets/layouts.candidate.json`은 승인 전 검토·분석 기록으로만 보존한다. 실행에는 승인된 `brand.json`/`layouts.json`만 쓴다.
 4. 레퍼런스의 포함·제외 상태는 `assets/reference-decks/sources.json`과 `assets/reference-analysis.json`을 따른다.
 
 ## 요청 분기
@@ -17,7 +17,7 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 - 레퍼런스 분석: `references/reference-analysis.md`와 관련 문서군 패턴만 읽는다.
 - 색상·서체·로고: `references/design-tokens.md`, 폰트 manifest와 CI 자산을 읽는다.
 - 문체·말투: `assets/voice.json`을 실행 정본으로, `references/voice-and-tone.md`를 판단 근거로 읽는다. `restyle-only`에서는 진단만 하고 원문을 바꾸지 않으며, `hana-refine`에서도 수치·기간·비교 기준을 잠근다.
-- 레이아웃: `references/layout-patterns.md`와 해당 문서군 패턴을 읽는다.
+- 레이아웃: `assets/layouts.json`을 실행 정본으로, `references/layout-patterns.md`(문서군 공통 선택 규칙)와 `references/hfg-ir-patterns.md`(hfg-ir 문서군 패턴)를 판단 근거로 읽는다.
 - PPT 인수: `scripts/ingest_deck.py`로 원본을 변경하지 않고 `deck_spec.json` 인벤토리를 생성한다. 미지원 요소 경고를 손실 없는 변환 성공으로 간주하지 않는다.
 - PPT 후처리(기존 파일 편집): `scripts/restyle_deck.py`가 승인된 `brand.json`의 색상·폰트를 PPTX 테마 파트에 적용한다(`restyle-only`). `hana-refine`은 `references/hana-refine-workflow.md`의 절차(추출 → 에이전트 재작성 → `verify_evidence_preserved`로 수치·비교기준 검증 → 적용)를 따른다. 검증에 실패하면 어떤 슬라이드도 수정하지 않는다.
 - PPT 생성(신규 작성): `scripts/build_deck.py`가 `deck_spec.json`과 승인된 `brand.json`으로 새 PPTX를 만든다. 위치·이미지 데이터가 없는 인벤토리 기반이라 슬라이드마다 제목 + (불릿 또는 표) 하나짜리 단일 레이아웃만 생성하고, 이미지·그래픽 요소는 재현하지 않고 경고로 보고한다.
@@ -37,4 +37,4 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 
 ## 현재 한계
 
-현재 `brand.json`은 사용자가 로컬 하나금융그룹 IR 자료를 기준으로 승인한 운영 프로필이며 하나증권 공식 CI 규격이 아니다. PPT 변환 스크립트와 렌더 검증이 갖춰질 때까지 완성된 하나증권 PPT 변환 기능으로 취급하지 않는다.
+현재 `brand.json`과 `layouts.json`은 모두 사용자가 로컬 하나금융그룹 IR 자료를 기준으로 승인한 운영 프로필이며 하나증권 공식 CI·레이아웃 규격이 아니다. PPT 변환 스크립트와 렌더 검증이 갖춰질 때까지 완성된 하나증권 PPT 변환 기능으로 취급하지 않는다. 슬라이드 요소·레이아웃 배치 수준 재구성(표지·목차·비교 등)은 `layouts.json`이 생겼어도 `restyle_deck.py`/`build_deck.py`에 아직 구현되지 않았다.
