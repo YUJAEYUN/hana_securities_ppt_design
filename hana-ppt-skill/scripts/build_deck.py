@@ -26,7 +26,7 @@ from pathlib import Path
 import restyle_deck
 
 EMU_PER_INCH = 914400
-MARGIN = 457200  # 0.5in
+MARGIN = 540000  # 1.5cm — 일반 PPT 디자인 권장 여백(general-ppt-design-principles.md 4절). 이전엔 0.5in(≈1.27cm)이었다.
 TITLE_HEIGHT = 838200  # ~0.9in
 
 XML_HEADER = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
