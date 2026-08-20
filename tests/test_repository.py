@@ -573,6 +573,49 @@ class BuildDeckTests(unittest.TestCase):
         # 장식 도형이 제목/본문보다 spTree에서 먼저 나와야 뒤에 깔린다.
         self.assertLess(slide1.index("Decoration Divider Rule"), slide1.index('name="Title"'))
 
+    CLOSING_DECK_SPEC = {
+        "schema_version": 1,
+        "source": {"path": "x.pptx", "sha256": "0" * 64},
+        "slides": [
+            {
+                "number": 1,
+                "part": "ppt/slides/slide1.xml",
+                "elements": [
+                    {"kind": "shape", "name": "Intro", "text": "본 자료의 세부 내용이나 하나증권 관련 문의는 아래로 연락 주시기 바랍니다"},
+                    {"kind": "shape", "name": "Addr", "text": "주소 : 서울특별시 영등포구 의사당대로 82"},
+                    {"kind": "shape", "name": "Tel", "text": "대표 전화 : 02-1588-3111"},
+                ],
+                "warnings": [],
+            }
+        ],
+        "warnings": [],
+    }
+
+    def test_closing_role_draws_full_background_and_contact_box_without_standard_title(self):
+        """실제 하나증권 자료(28p, 마지막 장) 근거: 전체 초록 배경 + 하단 좌측 안내문 +
+        얇은 테두리 연락처 박스, 표준 큰 제목 placeholder는 없음."""
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        brand = json.loads(brand_path.read_text(encoding="utf-8"))
+        primary_green = brand["colors"]["primary_green"]["value"].lstrip("#").upper()
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = Path(directory) / "deck_spec.json"
+            deck_spec_path.write_text(json.dumps(self.CLOSING_DECK_SPEC, ensure_ascii=False), encoding="utf-8")
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(json.dumps({"1": "closing"}), encoding="utf-8")
+            out_path = Path(directory) / "out.pptx"
+            BUILD.build_deck(
+                deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+            )
+            with zipfile.ZipFile(out_path) as archive:
+                slide1 = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        self.assertIn(f'<a:srgbClr val="{primary_green}">', slide1)  # 전체 배경
+        self.assertIn('"Decoration Closing Box"', slide1)
+        self.assertIn("<a:noFill/>", slide1)  # 박스는 채우지 않고 테두리만
+        self.assertIn("본 자료의 세부 내용이나", slide1)
+        self.assertIn("주소 : 서울특별시 영등포구 의사당대로 82", slide1)
+        self.assertNotIn('name="Title"', slide1)  # 표준 제목 placeholder는 안 씀
+
     def test_table_header_and_band_rows_use_brand_colors(self):
         """재무 현황(5p) 실제 자료의 진한 헤더·옅은 줄무늬를 근거로 한 표 스타일."""
         brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
@@ -585,8 +628,13 @@ class BuildDeckTests(unittest.TestCase):
             BUILD.build_deck(deck_spec_path, brand_path, out_path)
             with zipfile.ZipFile(out_path) as archive:
                 slide2 = archive.read("ppt/slides/slide2.xml").decode("utf-8")
+        bold_family = brand["typography"]["heading"]["families"][1]
         self.assertIn(f'<a:tcPr><a:solidFill><a:srgbClr val="{deep_teal}"/></a:solidFill></a:tcPr>', slide2)
-        self.assertIn('<a:rPr b="1"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:rPr>', slide2)
+        self.assertIn(
+            f'<a:rPr b="1"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>'
+            f'<a:latin typeface="{bold_family}"/></a:rPr>',
+            slide2,
+        )
         self.assertIn(f'<a:tcPr><a:solidFill><a:srgbClr val="{pale_mint}"/></a:solidFill></a:tcPr>', slide2)
 
     STAT_DECK_SPEC = {
@@ -626,8 +674,10 @@ class BuildDeckTests(unittest.TestCase):
             )
             with zipfile.ZipFile(out_path) as archive:
                 slide1 = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        bold_family = brand["typography"]["heading"]["families"][1]
         self.assertIn("전국 영업점 수", slide1)
         self.assertIn(f'<a:rPr b="1" sz="3200"><a:solidFill><a:srgbClr val="{primary_green}"/>', slide1)
+        self.assertIn(f'<a:latin typeface="{bold_family}"/>', slide1)  # 합성 볼드 대신 실제 굵기 폰트
         self.assertIn("54개", slide1)
         self.assertIn("44개", slide1)
 
@@ -684,6 +734,7 @@ class BuildDeckTests(unittest.TestCase):
         """주요 사업영역(11p)의 3열 카드(상단 바+헤더+불릿) 근거. 여기서는 2열로 검증한다."""
         brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
         layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        brand = json.loads(brand_path.read_text(encoding="utf-8"))
         with tempfile.TemporaryDirectory() as directory:
             deck_spec_path = Path(directory) / "deck_spec.json"
             deck_spec_path.write_text(json.dumps(self.CARD_DECK_SPEC, ensure_ascii=False), encoding="utf-8")
@@ -695,9 +746,11 @@ class BuildDeckTests(unittest.TestCase):
             )
             with zipfile.ZipFile(out_path) as archive:
                 slide1 = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        bold_family = brand["typography"]["heading"]["families"][1]
         self.assertIn('"Decoration Card Top Bar"', slide1)
         self.assertIn('"Decoration Card Header"', slide1)
         self.assertIn('<a:pPr algn="ctr"/>', slide1)
+        self.assertIn(f'<a:latin typeface="{bold_family}"/>', slide1)  # 합성 볼드 대신 실제 굵기 폰트
         self.assertIn("WM", slide1)
         self.assertIn("개인 또는 법인대상 금융상품 판매", slide1)
         self.assertIn("IB", slide1)

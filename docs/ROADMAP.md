@@ -33,8 +33,8 @@
 - `restyle_deck.py`/`build_deck.py`는 범용 PPTX 조작(엔진 겹)만 담당하고, 하나증권 브랜드·문체 판단(규칙 겹)은 승인된 `brand.json`/`voice.json` 주입으로 분리합니다.
 - `restyle_deck.py`의 `restyle-only`(완료): 테마 파트(`ppt/theme/themeN.xml`)의 색상·폰트만 승인된 `brand.json`으로 교체. 슬라이드 XML은 전혀 읽거나 쓰지 않아 원문 잠금을 구조적으로 보장합니다.
 - `restyle_deck.py`의 `hana-refine`(1차 구현 완료, 텍스트 런 수준): `text_units.py`로 슬라이드 텍스트 런을 추출하고, 에이전트가 `voice.json` 규칙에 따라 다시 쓴 `edits.json`을 `verify_evidence_preserved.py`로 검증(수치·비교기준 보존)한 뒤에만 적용합니다. 검증 실패 시 어떤 슬라이드도 수정하지 않습니다. 절차는 [hana-refine-workflow.md](../hana-ppt-skill/references/hana-refine-workflow.md) 참고.
-- `build_deck.py`(기본 레이아웃 완료 + 역할별 배치 1차 구현): `deck_spec.json`(텍스트·표 인벤토리)과 승인된 `brand.json`으로 PPTX를 처음부터 새로 만듭니다. 표준 라이브러리만으로 `[Content_Types].xml`부터 테마·슬라이드까지 OOXML 파트를 직접 작성합니다(외부 생성 라이브러리 미사용). `--layouts`(승인된 `layouts.json`)와 `--layout-plan`(슬라이드별 역할 JSON, 에이전트/사람이 작성)을 함께 주면 `cover`/`section-divider`/`disclaimer`/`strategic-kpi`/`executive-summary` 역할별로 다르게 배치합니다. `strategic-kpi`/`executive-summary`는 `--layout-plan`에서 `{"role": "executive-summary", "columns": 3}`처럼 열 개수를 함께 받아야 하며, 열마다 필요한 텍스트 개수가 안 맞으면 추측하지 않고 오류로 막습니다. 미지정 슬라이드나 `closing` 역할은 기본(data-body: 제목 + 불릿 또는 표) 레이아웃으로 대체됩니다. 장식 요소는 OOXML 프리셋 도형(`prstGeom`)으로 브랜드 색상에 맞춰 그립니다. cover/section-divider/strategic-kpi/executive-summary는 실제 하나증권 배포 자료(`hana-securities-2025-profile`)와 대조해 확정했습니다(처음엔 HFG 그룹 IR 근거로 다른 모양을 추정했으나 실제 자료와 달랐습니다 — [정정 기록](../hana-ppt-skill/references/hana-securities-cover-pattern-correction.md), `layouts.json`의 각 패턴 `superseded` 필드). data-body는 제목 밑줄을, 표는 진한 헤더 행과 옅은 줄무늬 행을 그립니다(재무 현황 페이지 근거, 어느 행이 부분합인지는 추측하지 않고 홀수 행마다 기계적으로 줄무늬만 넣습니다). 로고는 보호영역이 미확정이라 여전히 자동 배치하지 않고 경고로 남깁니다. 이미지·그래픽·그룹 요소는 재현하지 않고 경고로만 보고합니다. `SKILL.md`에는 사용자가 PPTX만 첨부했을 때 에이전트가 역할·열 개수 판단부터 렌더까지 직접 수행하는 절차를 명시했습니다.
-- 남은 범위: `closing` 역할 배치, `restyle_deck.py`(기존 파일 편집)의 레이아웃 수준 재구성(아직 전혀 없음), 참고 자료에서 아이콘·삽화 같은 재사용 그래픽 에셋을 뽑아 라이브러리로 등록하고 `<p:pic>`으로 삽입하는 기능(따로 검토 필요 — 크기·색이 고정된 비트맵이라 잘못 쓰면 어색해 보일 위험이 있어 벡터 장식보다 신중히 접근), 실제 외부 PPTX로 자동 절차 종단간 검증
+- `build_deck.py`(기본 레이아웃 완료 + 역할별 배치 1차 구현): `deck_spec.json`(텍스트·표 인벤토리)과 승인된 `brand.json`으로 PPTX를 처음부터 새로 만듭니다. 표준 라이브러리만으로 `[Content_Types].xml`부터 테마·슬라이드까지 OOXML 파트를 직접 작성합니다(외부 생성 라이브러리 미사용). `--layouts`(승인된 `layouts.json`)와 `--layout-plan`(슬라이드별 역할 JSON, 에이전트/사람이 작성)을 함께 주면 `cover`/`section-divider`/`disclaimer`/`strategic-kpi`/`executive-summary`/`closing` 역할별로 다르게 배치합니다. `strategic-kpi`/`executive-summary`는 `--layout-plan`에서 `{"role": "executive-summary", "columns": 3}`처럼 열 개수를 함께 받아야 하며, 열마다 필요한 텍스트 개수가 안 맞으면 추측하지 않고 오류로 막습니다. 미지정 슬라이드는 기본(data-body: 제목 + 불릿 또는 표) 레이아웃으로 대체됩니다. 장식 요소는 OOXML 프리셋 도형(`prstGeom`)으로 브랜드 색상에 맞춰 그립니다. cover/section-divider/strategic-kpi/executive-summary/closing은 실제 하나증권 배포 자료(`hana-securities-2025-profile`)와 대조해 확정했습니다(처음엔 HFG 그룹 IR 근거로 다른 모양을 추정했으나 실제 자료와 달랐습니다 — [정정 기록](../hana-ppt-skill/references/hana-securities-cover-pattern-correction.md), `layouts.json`의 각 패턴 `superseded` 필드). `closing`은 표준 제목 placeholder 없이 하단에 안내문 + 테두리만 있는 연락처 박스를 직접 그립니다(28p 근거). data-body는 제목 밑줄을, 표는 진한 헤더 행과 옅은 줄무늬 행을 그립니다(재무 현황 페이지 근거, 어느 행이 부분합인지는 추측하지 않고 홀수 행마다 기계적으로 줄무늬만 넣습니다). 로고는 보호영역이 미확정이라 여전히 자동 배치하지 않고 경고로 남깁니다. 이미지·그래픽·그룹 요소는 재현하지 않고 경고로만 보고합니다. `SKILL.md`에는 사용자가 PPTX만 첨부했을 때 에이전트가 역할·열 개수 판단부터 렌더까지 직접 수행하는 절차를 명시했습니다.
+- 남은 범위: `restyle_deck.py`(기존 파일 편집)의 레이아웃 수준 재구성(아직 전혀 없음), 참고 자료에서 아이콘·삽화 같은 재사용 그래픽 에셋을 뽑아 라이브러리로 등록하고 `<p:pic>`으로 삽입하는 기능(따로 검토 필요 — 크기·색이 고정된 비트맵이라 잘못 쓰면 어색해 보일 위험이 있어 벡터 장식보다 신중히 접근), 실제 외부 PPTX로 자동 절차 종단간 검증
 - 밀도 초과 시 자동 축소보다 페이지 분할 우선
 - 원문·데이터 잠금과 출처 범위 검사(레이아웃 수준까지 확장 필요)
 
@@ -53,10 +53,10 @@
 
 - `render_slides.py`: LibreOffice(`soffice`) → PDF → `pdftoppm` 슬라이드별 이미지, render manifest 생성 (구현 완료, PowerPoint 렌더는 아직 없음)
 - contact sheet 생성 (예정)
-- `quality_check.py`: 잘림, 겹침, 정렬, 여백과 밀도 검사 (예정)
-- `visual_check.py`: 고정 루브릭 기반 비전 평가 (예정)
+- `quality_check.py`(구조 QA, 구현 완료): PPTX를 렌더링하지 않고 zip 구조만 본다 — `[Content_Types].xml`/`.rels` 정합성, 화면비, (deck_spec 대비) 슬라이드 수, 명시적 좌표가 있는 텍스트 도형의 경계·겹침. 실제 렌더 없이는 알 수 없는 텍스트 잘림·여백·밀도는 다루지 않는다(시각 QA의 몫으로 남김).
+- `visual_check.py`(시각 QA, 1차 구현 완료): 고정 루브릭 기반 비전 평가. `layouts.json`의 승인된 `elements`를 슬라이드별 체크리스트로 정리하고(+Pillow 있으면 단색 배경 역할은 기계적 색상 대조), 별도 세션이 [visual-qa-rubric.md](../hana-ppt-skill/references/visual-qa-rubric.md) 절차로 렌더 이미지를 보고 판정한다. 이 개발 환경은 `soffice` 렌더가 막혀 있어 실제 렌더 이미지로 종단간 검증은 아직 못 했다.
 - 자동 수정 3~5회 후 사람 확인
-- 검사 순서는 콘텐츠 QA → 구조 QA → 시각 QA 3단계로 둡니다. 계층 분리와 참고 근거는 [ARCHITECTURE.md](ARCHITECTURE.md)를 따릅니다.
+- 검사 순서는 콘텐츠 QA → 구조 QA → 시각 QA 3단계로 둡니다. 계층 분리와 참고 근거는 [ARCHITECTURE.md](ARCHITECTURE.md)를 따릅니다. 콘텐츠 QA(텍스트 누락·플레이스홀더 검사)는 아직 없습니다.
 
 종료 조건: 정상 샘플은 통과하고 고의 불량 픽스처는 기대한 검사에서 실패합니다.
 
