@@ -587,6 +587,134 @@ class BuildDeckTests(unittest.TestCase):
         self.assertIn('<a:rPr b="1"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:rPr>', slide2)
         self.assertIn(f'<a:tcPr><a:solidFill><a:srgbClr val="{pale_mint}"/></a:solidFill></a:tcPr>', slide2)
 
+    STAT_DECK_SPEC = {
+        "schema_version": 1,
+        "source": {"path": "x.pptx", "sha256": "0" * 64},
+        "slides": [
+            {
+                "number": 1,
+                "part": "ppt/slides/slide1.xml",
+                "elements": [
+                    {"kind": "shape", "name": "Title", "text": "국내·외 네트워크"},
+                    {"kind": "shape", "name": "L1", "text": "전국 영업점 수"},
+                    {"kind": "shape", "name": "V1", "text": "54개"},
+                    {"kind": "shape", "name": "L2", "text": "복합 점포"},
+                    {"kind": "shape", "name": "V2", "text": "44개"},
+                ],
+                "warnings": [],
+            }
+        ],
+        "warnings": [],
+    }
+
+    def test_strategic_kpi_renders_label_value_columns(self):
+        """국내·외 네트워크(7p)의 통계 블록 근거. columns는 layout-plan에 명시해야 한다."""
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        brand = json.loads(brand_path.read_text(encoding="utf-8"))
+        primary_green = brand["colors"]["primary_green"]["value"].lstrip("#").upper()
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = Path(directory) / "deck_spec.json"
+            deck_spec_path.write_text(json.dumps(self.STAT_DECK_SPEC, ensure_ascii=False), encoding="utf-8")
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(json.dumps({"1": {"role": "strategic-kpi", "columns": 2}}), encoding="utf-8")
+            out_path = Path(directory) / "out.pptx"
+            BUILD.build_deck(
+                deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+            )
+            with zipfile.ZipFile(out_path) as archive:
+                slide1 = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        self.assertIn("전국 영업점 수", slide1)
+        self.assertIn(f'<a:rPr b="1" sz="3200"><a:solidFill><a:srgbClr val="{primary_green}"/>', slide1)
+        self.assertIn("54개", slide1)
+        self.assertIn("44개", slide1)
+
+    def test_strategic_kpi_requires_columns_in_layout_plan(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = Path(directory) / "deck_spec.json"
+            deck_spec_path.write_text(json.dumps(self.STAT_DECK_SPEC, ensure_ascii=False), encoding="utf-8")
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(json.dumps({"1": "strategic-kpi"}), encoding="utf-8")
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                BUILD.build_deck(
+                    deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+                )
+
+    def test_strategic_kpi_rejects_uneven_label_value_count(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = Path(directory) / "deck_spec.json"
+            deck_spec_path.write_text(json.dumps(self.STAT_DECK_SPEC, ensure_ascii=False), encoding="utf-8")
+            plan_path = Path(directory) / "plan.json"
+            # columns=3인데 [레이블,값] 쌍 4개(8개 텍스트)뿐이라 3*2=6과 맞지 않는다.
+            plan_path.write_text(json.dumps({"1": {"role": "strategic-kpi", "columns": 3}}), encoding="utf-8")
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                BUILD.build_deck(
+                    deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+                )
+
+    CARD_DECK_SPEC = {
+        "schema_version": 1,
+        "source": {"path": "x.pptx", "sha256": "0" * 64},
+        "slides": [
+            {
+                "number": 1,
+                "part": "ppt/slides/slide1.xml",
+                "elements": [
+                    {"kind": "shape", "name": "Title", "text": "주요 사업영역"},
+                    {"kind": "shape", "name": "H1", "text": "WM"},
+                    {"kind": "shape", "name": "B1", "text": "개인 또는 법인대상 금융상품 판매"},
+                    {"kind": "shape", "name": "H2", "text": "IB"},
+                    {"kind": "shape", "name": "B2", "text": "기업금융 업무 전반 수행"},
+                ],
+                "warnings": [],
+            }
+        ],
+        "warnings": [],
+    }
+
+    def test_executive_summary_renders_card_columns(self):
+        """주요 사업영역(11p)의 3열 카드(상단 바+헤더+불릿) 근거. 여기서는 2열로 검증한다."""
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = Path(directory) / "deck_spec.json"
+            deck_spec_path.write_text(json.dumps(self.CARD_DECK_SPEC, ensure_ascii=False), encoding="utf-8")
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(json.dumps({"1": {"role": "executive-summary", "columns": 2}}), encoding="utf-8")
+            out_path = Path(directory) / "out.pptx"
+            BUILD.build_deck(
+                deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+            )
+            with zipfile.ZipFile(out_path) as archive:
+                slide1 = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        self.assertIn('"Card Top Bar"', slide1)
+        self.assertIn('"Card Header"', slide1)
+        self.assertIn('<a:pPr algn="ctr"/>', slide1)
+        self.assertIn("WM", slide1)
+        self.assertIn("개인 또는 법인대상 금융상품 판매", slide1)
+        self.assertIn("IB", slide1)
+
+    def test_executive_summary_rejects_uneven_column_split(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = Path(directory) / "deck_spec.json"
+            deck_spec_path.write_text(json.dumps(self.CARD_DECK_SPEC, ensure_ascii=False), encoding="utf-8")
+            plan_path = Path(directory) / "plan.json"
+            # 텍스트 4개를 columns=3으로는 고르게 나눌 수 없다.
+            plan_path.write_text(json.dumps({"1": {"role": "executive-summary", "columns": 3}}), encoding="utf-8")
+            out_path = Path(directory) / "out.pptx"
+            with self.assertRaises(ValueError):
+                BUILD.build_deck(
+                    deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+                )
+
     def test_layout_plan_requires_both_layouts_and_plan(self):
         brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
         layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"

@@ -20,10 +20,22 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 - 레이아웃: `assets/layouts.json`을 실행 정본으로, `references/layout-patterns.md`(문서군 공통 선택 규칙)와 `references/hfg-ir-patterns.md`(hfg-ir 문서군 패턴)를 판단 근거로 읽는다.
 - PPT 인수: `scripts/ingest_deck.py`로 원본을 변경하지 않고 `deck_spec.json` 인벤토리를 생성한다. 미지원 요소 경고를 손실 없는 변환 성공으로 간주하지 않는다.
 - PPT 후처리(기존 파일 편집): `scripts/restyle_deck.py`가 승인된 `brand.json`의 색상·폰트를 PPTX 테마 파트에 적용한다(`restyle-only`). `hana-refine`은 `references/hana-refine-workflow.md`의 절차(추출 → 에이전트 재작성 → `verify_evidence_preserved`로 수치·비교기준 검증 → 적용)를 따른다. 검증에 실패하면 어떤 슬라이드도 수정하지 않는다.
-- PPT 생성(신규 작성): `scripts/build_deck.py`가 `deck_spec.json`과 승인된 `brand.json`으로 새 PPTX를 만든다. `--layouts`/`--layout-plan`을 안 주면 슬라이드마다 제목 + (불릿 또는 표) 하나짜리 기본(data-body) 레이아웃만 생성한다. `--layout-plan`으로 슬라이드별 역할(`cover`/`section-divider`/`disclaimer`/`data-body`)을 지정하면 역할별로 다르게 배치한다 — 어떤 슬라이드가 표지인지 같은 판단은 에이전트/사람이 하고, 스크립트는 그 판단을 기계적으로 실행만 한다(hana-refine의 `edits.json`과 같은 원칙). `strategic-kpi`/`executive-summary`/`closing` 역할별 배치는 아직 없다. 장식 요소는 OOXML 프리셋 도형으로 그린다. cover/section-divider는 실제 하나증권 자료(`hana-securities-2025-profile`) 대조로 전체 배경을 `primary_green`으로 채우고 흰 제목을 놓는다(처음 HFG IR 근거로 추정했던 적색선·원형 모티프는 실제엔 없어서 뺐다 — `references/hana-securities-cover-pattern-correction.md`). data-body는 제목 밑줄을, 표는 진한 헤더 행 + 옅은 줄무늬 행을 그린다(부분합 여부는 추측하지 않고 홀수 행마다 기계적으로 줄무늬). 로고는 보호영역 미확정으로 여전히 자동 배치하지 않는다(경고로 보고). 이미지·그래픽 요소는 재현하지 않고 경고로 보고한다.
+- PPT 생성(신규 작성): `scripts/build_deck.py`가 `deck_spec.json`과 승인된 `brand.json`으로 새 PPTX를 만든다. `--layouts`/`--layout-plan`을 안 주면 슬라이드마다 제목 + (불릿 또는 표) 하나짜리 기본(data-body) 레이아웃만 생성한다. `--layout-plan`의 각 슬라이드 값은 문자열 역할(`"cover"`)이거나 `{"role": "executive-summary", "columns": 3}`처럼 역할별 추가 인자를 담은 객체다. `cover`/`section-divider`/`disclaimer`/`data-body`/`strategic-kpi`/`executive-summary` 역할을 지원한다(`closing` 역할별 배치는 아직 없음). `strategic-kpi`는 열마다 정확히 `[레이블, 값]` 두 텍스트를, `executive-summary`는 열마다 같은 개수(첫 텍스트=카드 제목, 나머지=불릿)를 요구하며 `columns`가 없거나 개수가 안 맞으면 즉시 오류로 막는다(추측하지 않음). 장식 요소는 OOXML 프리셋 도형으로 그린다. cover/section-divider/strategic-kpi/executive-summary는 실제 하나증권 자료(`hana-securities-2025-profile`) 대조로 확정했다(처음 HFG IR 근거로 추정했던 것과 다른 경우가 많았다 — `references/hana-securities-cover-pattern-correction.md`, `layouts.json`의 각 패턴 `superseded` 필드). data-body는 제목 밑줄을, 표는 진한 헤더 행 + 옅은 줄무늬 행을 그린다(부분합 여부는 추측하지 않고 홀수 행마다 기계적으로 줄무늬). 로고는 보호영역 미확정으로 여전히 자동 배치하지 않는다(경고로 보고). 이미지·그래픽 요소는 재현하지 않고 경고로 보고한다.
 - `restyle_deck.py`(기존 파일 편집)의 레이아웃 배치 수준 재구성은 아직 없다. 없는 기능을 있는 것처럼 보고하지 않는다.
 - PPT 렌더: `scripts/render_slides.py`로 PPTX를 PDF와 슬라이드별 이미지로 변환하고 render manifest를 만든다. `soffice`나 `pdftoppm`이 없으면 명확한 오류로 중단하며 조용히 건너뛰지 않는다.
 - 품질 검사: 기준 이미지 전체 픽셀 일치가 아니라 화면비, 고정 요소, 경계, 정렬, 밀도와 색상 분포를 비교한다. 콘텐츠 QA → 구조 QA → 시각 QA 순서를 따른다.
+
+## 사용자가 PPTX를 첨부하고 "하나증권 스타일로 바꿔줘"라고만 했을 때
+
+사용자는 어떤 슬라이드가 표지인지, 열이 몇 개인지 같은 것을 직접 정하지 않는다. 그 판단은 에이전트(이 스킬을 실행하는 세션) 몫이고, 스크립트는 그 판단을 기계적으로 실행만 한다 — `hana-refine`의 `edits.json`, `build_deck.py`의 `layout-plan`이 이미 그렇게 설계돼 있다. 절차:
+
+1. `ingest_deck.py`로 원본을 그대로 `deck_spec.json`으로 인수한다(원본 미변경).
+2. 에이전트가 `deck_spec.json`의 슬라이드를 순서대로 훑어보고, `layouts.json`의 각 패턴(`elements`/`evidence_pages`/`note`)을 근거로 슬라이드별 역할을 판단해 `layout-plan.json`을 스스로 작성한다. `strategic-kpi`/`executive-summary`처럼 `columns`가 필요한 역할은 그 슬라이드의 실제 텍스트 개수를 보고 몇 열이 맞는지도 직접 정한다. 애매하면(예: 텍스트 개수가 어떤 열 수로도 고르게 안 나뉨) 무리해서 끼워 맞추지 말고 `data-body`처럼 더 단순한 역할로 대체하거나 사용자에게 그 슬라이드만 짚어 확인한다.
+3. `build_deck.py --layouts assets/layouts.json --layout-plan <2에서 만든 파일>`로 PPTX를 생성한다.
+4. 가능하면 `render_slides.py`로 렌더해 결과를 눈으로 확인한다(`soffice`/`pdftoppm`이 없는 샌드박스에서는 스키매틱 프리뷰 등 대안으로 확인하고, 렌더를 못 했다는 사실을 감추지 않는다).
+5. 표지 로고처럼 여전히 막혀 있는 항목(`brand.json.logo.placement_status`)은 경고로 보고하고 자동 배치하지 않는다 — 이것도 사용자에게 다시 묻지 않고 정책대로 처리한다.
+
+이 절차 자체를 사용자에게 설명하거나 확인받을 필요는 없다. 다만 결과물에서 무엇을 재현하지 못했는지(이미지·그래픽, 로고, 아직 없는 `closing` 역할 등)는 warnings로 투명하게 보고한다.
 
 ## 변경 원칙
 
@@ -37,6 +49,6 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 
 ## 현재 한계
 
-현재 `brand.json`과 `layouts.json`은 모두 사용자가 로컬 하나금융그룹 IR 자료를 기준으로 승인한 운영 프로필이며 하나증권 공식 CI·레이아웃 규격이 아니다. PPT 변환 스크립트와 렌더 검증이 갖춰질 때까지 완성된 하나증권 PPT 변환 기능으로 취급하지 않는다. `build_deck.py`는 `cover`/`section-divider`/`disclaimer` 세 역할만 배치를 지원하고 나머지 역할은 기본(data-body) 레이아웃으로 대체된다. `restyle_deck.py`(기존 파일 편집)는 레이아웃 배치 수준 재구성이 아직 전혀 없다.
+현재 `brand.json`과 `layouts.json`은 모두 사용자가 로컬 하나금융그룹 IR 자료를 기준으로 승인한 운영 프로필이며 하나증권 공식 CI·레이아웃 규격이 아니다. PPT 변환 스크립트와 렌더 검증이 갖춰질 때까지 완성된 하나증권 PPT 변환 기능으로 취급하지 않는다. `build_deck.py`는 `cover`/`section-divider`/`disclaimer`/`strategic-kpi`/`executive-summary` 역할 배치를 지원하고 `closing`은 아직 기본(data-body) 레이아웃으로 대체된다. "PPTX를 첨부하고 하나증권 스타일로 바꿔달라"는 요청에 에이전트가 역할·columns를 스스로 판단해 layout-plan을 작성하는 절차(위 섹션)는 아직 실제 외부 PPTX로 종단간 검증하지 않았다. `restyle_deck.py`(기존 파일 편집)는 레이아웃 배치 수준 재구성이 아직 전혀 없다.
 
 사용자가 공식 CI 컬러·서체 수치와 실제 하나증권 배포 자료(심볼마크 추출·색상 검증에 사용)를 제공해 `assets/ci-colors.json`/`assets/ci-typography.json`으로 등록했지만(`official_ci_specification: true`), 이 값은 아직 `brand.json`에 병합되지 않았고 실행 스크립트가 사용하지도 않는다. `references/official-ci-specification.md`의 "남은 작업"이 모두 채워지기 전까지 `brand.json`을 공식 CI 기준으로 바꾸지 않는다.

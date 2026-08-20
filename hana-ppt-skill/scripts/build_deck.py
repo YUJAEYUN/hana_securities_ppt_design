@@ -229,9 +229,27 @@ def _escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _paragraph(text: str, *, align: str | None = None, color: str | None = None) -> str:
+def _run_pr(*, bold: bool = False, color: str | None = None, size: int | None = None) -> str:
+    """<a:rPr>를 만든다. size는 포인트(예: 12pt=1200 하는 OOXML 방식이 아니라 실제 pt 정수,
+    내부에서 100배해 sz 속성으로 바꾼다)."""
+    if not (bold or color or size):
+        return ""
+    attrs = ' b="1"' if bold else ""
+    attrs += f' sz="{size * 100}"' if size else ""
+    fill = f'<a:solidFill><a:srgbClr val="{color}"/></a:solidFill>' if color else ""
+    return f"<a:rPr{attrs}>{fill}</a:rPr>"
+
+
+def _paragraph(
+    text: str,
+    *,
+    align: str | None = None,
+    color: str | None = None,
+    bold: bool = False,
+    size: int | None = None,
+) -> str:
     pPr = f'<a:pPr algn="{align}"/>' if align else ""
-    rPr = f'<a:rPr><a:solidFill><a:srgbClr val="{color}"/></a:solidFill></a:rPr>' if color else ""
+    rPr = _run_pr(bold=bold, color=color, size=size)
     return f"<a:p>{pPr}<a:r>{rPr}<a:t>{_escape(text)}</a:t></a:r></a:p>"
 
 
@@ -322,9 +340,7 @@ def _table_cell(text: str, *, fill: str | None = None, color: str | None = None,
     """표 셀 하나. 재무 현황(5p)의 헤더 진한 배경·흰 글씨, 부분합 줄무늬 배경을 근거로
     header/band 색을 brand.json 색상 역할로 채운다(layouts.json의 table_colors.header와
     같은 지정)."""
-    bold_attr = ' b="1"' if bold else ""
-    fill_xml = f'<a:solidFill><a:srgbClr val="{color}"/></a:solidFill>' if color else ""
-    rPr = f"<a:rPr{bold_attr}>{fill_xml}</a:rPr>" if bold or color else ""
+    rPr = _run_pr(bold=bold, color=color)
     tcPr = f'<a:tcPr><a:solidFill><a:srgbClr val="{fill}"/></a:solidFill></a:tcPr>' if fill else "<a:tcPr/>"
     return (
         f"<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r>{rPr}"
@@ -406,6 +422,129 @@ def _render_section_divider(extra_texts: list[str], table_rows: list[list[str]] 
     return _content_placeholder("<a:p/>"), warnings
 
 
+def _text_box(shape_id: int, name: str, x: int, y: int, cx: int, cy: int, inner_xml: str) -> str:
+    """placeholder가 아닌 독립 텍스트 상자. strategic-kpi/executive-summary처럼 한 슬라이드에
+    여러 개를 나란히 놓아야 하는 요소에 쓴다(placeholder는 슬라이드당 하나만 의미가 있다)."""
+    return (
+        f'<p:sp><p:nvSpPr><p:cNvPr id="{shape_id}" name="{name}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>'
+        f'<p:spPr><a:xfrm><a:off x="{x}" y="{y}"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm></p:spPr>'
+        f"<p:txBody><a:bodyPr/><a:lstStyle/>{inner_xml}</p:txBody></p:sp>"
+    )
+
+
+def _chunk_even(items: list[str], columns: int, *, per_column: int | None = None) -> list[list[str]]:
+    """텍스트를 columns개 열로 나눈다. 어떤 텍스트가 어느 열에 속하는지는 deck_spec의
+    순서만으로 정하며(내용을 보고 추측하지 않음), 개수가 맞지 않으면 조용히 잘라내거나
+    채우지 않고 바로 오류로 막는다."""
+    if columns < 1:
+        raise ValueError("columns는 1 이상이어야 합니다.")
+    expected_total = columns * per_column if per_column is not None else None
+    if expected_total is not None and len(items) != expected_total:
+        raise ValueError(
+            f"columns={columns}에 각 열당 {per_column}개씩 총 {expected_total}개 텍스트가 필요한데 "
+            f"{len(items)}개를 받았습니다."
+        )
+    if per_column is None:
+        if len(items) % columns != 0 or len(items) // columns < 1:
+            raise ValueError(
+                f"columns={columns}으로 고르게 나눌 수 없는 텍스트 개수({len(items)})입니다. "
+                "열마다 같은 개수의 텍스트(첫 번째는 카드 제목)를 주세요."
+            )
+        per_column = len(items) // columns
+    return [items[i * per_column : (i + 1) * per_column] for i in range(columns)]
+
+
+def _column_geometry(columns: int, cx: int) -> tuple[int, int]:
+    gap = 228600  # 0.25in
+    total_width = cx - 2 * MARGIN
+    col_width = (total_width - (columns - 1) * gap) // columns
+    return col_width, gap
+
+
+def _render_strategic_kpi(extra_texts: list[str], columns: int, brand: dict, cx: int) -> tuple[str, list[str]]:
+    """국내·외 네트워크(7p)의 통계 블록(레이블 위·얇은 선·큰 숫자)을 근거로 한 열 배치.
+    각 열은 정확히 [레이블, 값] 두 텍스트가 필요하다 — 어느 텍스트가 레이블이고 값인지
+    추측하지 않고 deck_spec 순서 그대로 받는다."""
+    groups = _chunk_even(extra_texts, columns, per_column=2)
+    col_width, gap = _column_geometry(columns, cx)
+    top = MARGIN + TITLE_HEIGHT + MARGIN // 3
+    label_hex = _role_hex(brand, "deep_teal")
+    value_hex = _role_hex(brand, "primary_green")
+    rule_hex = _role_hex(brand, "pale_mint")
+    shapes: list[str] = []
+    shape_id = 150
+    for index, (label, value) in enumerate(groups):
+        x = MARGIN + index * (col_width + gap)
+        shapes.append(_text_box(shape_id, "Stat Label", x, top, col_width, 320000, _paragraph(label, color=label_hex, size=12)))
+        shape_id += 1
+        if rule_hex:
+            shapes.append(_decoration_shape(shape_id, "Stat Rule", "rect", x, top + 330000, col_width, 25400, rule_hex))
+            shape_id += 1
+        shapes.append(
+            _text_box(
+                shape_id,
+                "Stat Value",
+                x,
+                top + 400000,
+                col_width,
+                700000,
+                _paragraph(value, color=value_hex, bold=True, size=32),
+            )
+        )
+        shape_id += 1
+    return "".join(shapes), []
+
+
+def _render_executive_summary(extra_texts: list[str], columns: int, brand: dict, cx: int) -> tuple[str, list[str]]:
+    """주요 사업영역(11p)의 3열 카드(상단 컬러 바 + 옅은 헤더 블록 + 구분선 + 불릿)를 근거로
+    한 카드 배치. 각 열의 첫 텍스트를 카드 제목으로, 나머지를 불릿으로 쓴다 — 어떤 텍스트가
+    제목인지 추측하지 않고 deck_spec 순서(열마다 같은 개수) 그대로 받는다."""
+    groups = _chunk_even(extra_texts, columns)
+    col_width, gap = _column_geometry(columns, cx)
+    top = MARGIN + TITLE_HEIGHT + MARGIN // 2
+    bar_hex = _role_hex(brand, "deep_teal")
+    header_hex = _role_hex(brand, "pale_mint")
+    heading_color = _role_hex(brand, "deep_teal")
+    bar_h, header_h, rule_h = 45720, 750000, 25400
+    card_h = 4200000
+    shapes: list[str] = []
+    shape_id = 150
+    for index, group in enumerate(groups):
+        heading, bullets = group[0], group[1:]
+        x = MARGIN + index * (col_width + gap)
+        y = top
+        if bar_hex:
+            shapes.append(_decoration_shape(shape_id, "Card Top Bar", "rect", x, y, col_width, bar_h, bar_hex))
+            shape_id += 1
+        y += bar_h
+        if header_hex:
+            shapes.append(_decoration_shape(shape_id, "Card Header", "rect", x, y, col_width, header_h, header_hex))
+            shape_id += 1
+        shapes.append(
+            _text_box(
+                shape_id,
+                "Card Heading",
+                x,
+                y,
+                col_width,
+                header_h,
+                _paragraph(heading, align="ctr", color=heading_color, bold=True, size=20),
+            )
+        )
+        shape_id += 1
+        y += header_h
+        if bar_hex:
+            shapes.append(_decoration_shape(shape_id, "Card Divider", "rect", x, y, col_width, rule_h, bar_hex))
+            shape_id += 1
+        y += rule_h + 91440
+        shapes.append(_text_box(shape_id, "Card Bullets", x, y, col_width, card_h - (y - top), _bullets_body(bullets)))
+        shape_id += 1
+        if bar_hex:
+            shapes.append(_decoration_shape(shape_id, "Card Bottom Rule", "rect", x, top + card_h, col_width, rule_h, bar_hex))
+            shape_id += 1
+    return "".join(shapes), []
+
+
 def _render_disclaimer(extra_texts: list[str]) -> tuple[str, list[str]]:
     paragraphs = "".join(_paragraph(text) for text in extra_texts) or "<a:p/>"
     return _content_placeholder(paragraphs), []
@@ -419,8 +558,25 @@ def _render_data_body(
     return _content_placeholder(_bullets_body(extra_texts)), []
 
 
+def _require_columns(role: str, params: dict) -> int:
+    columns = params.get("columns")
+    if not isinstance(columns, int) or columns < 1:
+        raise ValueError(
+            f"'{role}' 역할은 layout-plan에 정수 columns가 필요합니다. "
+            f'예: {{"role": "{role}", "columns": 3}}'
+        )
+    return columns
+
+
 def _render_slide(
-    role: str, slide: dict, brand: dict, cx: int, cy: int, body_cx: int, body_cy: int
+    role: str,
+    params: dict,
+    slide: dict,
+    brand: dict,
+    cx: int,
+    cy: int,
+    body_cx: int,
+    body_cy: int,
 ) -> tuple[str, list[str]]:
     title, extra_texts, table_rows, warnings = _parse_slide(slide)
     if role == "cover":
@@ -429,6 +585,10 @@ def _render_slide(
         body_xml, role_warnings = _render_section_divider(extra_texts, table_rows)
     elif role == "disclaimer":
         body_xml, role_warnings = _render_disclaimer(extra_texts)
+    elif role == "strategic-kpi":
+        body_xml, role_warnings = _render_strategic_kpi(extra_texts, _require_columns(role, params), brand, cx)
+    elif role == "executive-summary":
+        body_xml, role_warnings = _render_executive_summary(extra_texts, _require_columns(role, params), brand, cx)
     else:
         body_xml, role_warnings = _render_data_body(extra_texts, table_rows, body_cx, body_cy, brand)
     warnings.extend(role_warnings)
@@ -524,8 +684,8 @@ def build(deck_spec: dict, brand: dict, layout_plan: dict[int, str] | None = Non
 
     warnings: list[str] = []
     for slide in slides:
-        role = layout_plan.get(slide["number"], "data-body")
-        slide_xml, slide_warnings = _render_slide(role, slide, brand, cx, cy, body_cx, body_cy)
+        params = layout_plan.get(slide["number"], {"role": "data-body"})
+        slide_xml, slide_warnings = _render_slide(params["role"], params, slide, brand, cx, cy, body_cx, body_cy)
         warnings.extend(slide_warnings)
         parts[f"ppt/slides/slide{slide['number']}.xml"] = slide_xml.encode("utf-8")
         parts[f"ppt/slides/_rels/slide{slide['number']}.xml.rels"] = SLIDE_RELS_TEMPLATE.encode("utf-8")
@@ -533,9 +693,21 @@ def build(deck_spec: dict, brand: dict, layout_plan: dict[int, str] | None = Non
     return {"parts": parts, "warnings": warnings}
 
 
-def load_layout_plan(path: Path) -> dict[int, str]:
+def load_layout_plan(path: Path) -> dict[int, dict]:
+    """슬라이드별 역할 JSON을 읽는다. 값은 문자열 역할("cover") 또는
+    {"role": "executive-summary", "columns": 3}처럼 역할에 필요한 추가 인자를 담은 객체다.
+    columns 같은 추가 인자는 에이전트/사람이 명시적으로 정하며, 이 스크립트는 그 값을
+    그대로 기계적으로 실행만 한다."""
     raw = json.loads(path.read_text(encoding="utf-8"))
-    return {int(slide_number): role for slide_number, role in raw.items()}
+    plan: dict[int, dict] = {}
+    for slide_number, value in raw.items():
+        if isinstance(value, str):
+            plan[int(slide_number)] = {"role": value}
+        elif isinstance(value, dict) and "role" in value:
+            plan[int(slide_number)] = value
+        else:
+            raise ValueError(f'layout-plan의 슬라이드 {slide_number} 값이 올바르지 않습니다: {value!r}')
+    return plan
 
 
 def build_deck(
@@ -548,7 +720,7 @@ def build_deck(
 ) -> dict[str, object]:
     deck_spec = json.loads(deck_spec_path.read_text(encoding="utf-8"))
     brand = restyle_deck.load_approved_json(brand_path, "brand.json")
-    layout_plan: dict[int, str] = {}
+    layout_plan: dict[int, dict] = {}
     if layouts_path is not None or layout_plan_path is not None:
         if layouts_path is None or layout_plan_path is None:
             raise ValueError("역할별 레이아웃 배치를 쓰려면 --layouts와 --layout-plan을 모두 지정해야 합니다.")
@@ -558,7 +730,7 @@ def build_deck(
         unknown_slides = set(layout_plan) - slide_numbers
         if unknown_slides:
             raise ValueError(f"deck_spec에 없는 슬라이드 번호: {sorted(unknown_slides)}")
-        unknown_roles = set(layout_plan.values()) - set(layouts["patterns"])
+        unknown_roles = {params["role"] for params in layout_plan.values()} - set(layouts["patterns"])
         if unknown_roles:
             raise ValueError(f"layouts.json에 없는 역할: {sorted(unknown_roles)}")
     result = build(deck_spec, brand, layout_plan)
