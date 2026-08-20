@@ -5,13 +5,15 @@ deck_spec.json은 텍스트·표 인벤토리만 담고 있어(위치·이미지
 재현할 수 없다. `--layouts`/`--layout-plan`을 주지 않으면 슬라이드마다 제목 + (불릿 또는 표)
 하나짜리 기본(data-body) 레이아웃만 만든다. `--layout-plan`으로 슬라이드별 역할(승인된
 layouts.json의 패턴 키)을 지정하면 cover/section-divider/disclaimer/data-body 역할별로
-다르게 배치하고, layouts.json 패턴에 이미 승인돼 있던 장식 요소(cover의 적색 강조선·초록
-원형 모티프, section-divider의 옅은 원형 모티프, data-body의 제목 밑줄)를 브랜드 색상으로
-그린다. 역할 판단(어떤 슬라이드가 표지인지 등)은 에이전트/사람이 하고, 이 스크립트는 그
-판단을 기계적으로 실행만 한다 — hana-refine의 edits.json과 같은 원칙이다. strategic-kpi,
-executive-summary, closing 역할별 배치는 아직 없다. 로고는 보호영역이 미확정이라
-(brand.json.logo.placement_status) 자동 배치하지 않고 경고로만 보고한다. 이미지·그래픽·
-그룹 요소도 재현하지 않고 build 결과의 warnings로 보고한다.
+다르게 배치하고 브랜드 색상으로 장식을 그린다. cover/section-divider는 실제 하나증권
+배포 자료(hana-securities-2025-profile) 대조로 전체 배경을 primary_green으로 채우고
+흰 제목을 놓는 방식으로 확정했다(references/hana-securities-cover-pattern-correction.md).
+data-body는 제목 밑줄을, 표는 진한 헤더 행과 옅은 줄무늬 행을 brand.json 색상으로 그린다
+(재무 현황 페이지 대조 근거). 역할 판단(어떤 슬라이드가 표지인지 등)은 에이전트/사람이
+하고, 이 스크립트는 그 판단을 기계적으로 실행만 한다 — hana-refine의 edits.json과 같은
+원칙이다. strategic-kpi, executive-summary, closing 역할별 배치는 아직 없다. 로고는
+보호영역이 미확정이라(brand.json.logo.placement_status) 자동 배치하지 않고 경고로만
+보고한다. 이미지·그래픽·그룹 요소도 재현하지 않고 build 결과의 warnings로 보고한다.
 """
 
 from __future__ import annotations
@@ -227,9 +229,10 @@ def _escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _paragraph(text: str, *, align: str | None = None) -> str:
+def _paragraph(text: str, *, align: str | None = None, color: str | None = None) -> str:
     pPr = f'<a:pPr algn="{align}"/>' if align else ""
-    return f"<a:p>{pPr}<a:r><a:t>{_escape(text)}</a:t></a:r></a:p>"
+    rPr = f'<a:rPr><a:solidFill><a:srgbClr val="{color}"/></a:solidFill></a:rPr>' if color else ""
+    return f"<a:p>{pPr}<a:r>{rPr}<a:t>{_escape(text)}</a:t></a:r></a:p>"
 
 
 def _bullets_body(bullets: list[str]) -> str:
@@ -277,9 +280,14 @@ def _decoration_shape(
 
 
 def _decorations_for_role(role: str, brand: dict, cx: int, cy: int, body_cx: int) -> tuple[str, list[str]]:
-    """layouts.json의 승인된 패턴에 이미 있던 장식 요소(적색 강조선, 원형 모티프, 제목
-    밑줄)를 brand.json 색상 역할로 그린다. 로고처럼 보호영역이 없는 요소는 그리지 않고
-    경고로만 남긴다(brand.json.logo.policy와 동일한 원칙)."""
+    """cover/section-divider/data-body 장식을 brand.json 색상 역할로 그린다.
+
+    cover와 section-divider는 처음에 layouts.json의 HFG IR 기반 추정(적색 강조선,
+    원형 모티프)으로 그렸으나, 실제 하나증권 배포 자료(hana-securities-2025-profile,
+    표지 1p·섹션 구분 3p/10p)를 대조한 결과 원형 모티프는 없고 대신 전체 배경을
+    primary_green으로 채운 위에 흰 제목만 놓는 것으로 확인돼 이 근거로 다시 그린다
+    (references/hana-securities-cover-pattern-correction.md 참고). 로고처럼 보호영역이
+    없는 요소는 그리지 않고 경고로만 남긴다(brand.json.logo.policy와 동일한 원칙)."""
     shapes: list[str] = []
     warnings: list[str] = []
     shape_id = 90
@@ -292,51 +300,53 @@ def _decorations_for_role(role: str, brand: dict, cx: int, cy: int, body_cx: int
         shapes.append(_decoration_shape(shape_id, name, prst, x, y, w, h, hex_color, alpha=alpha))
         shape_id += 1
 
-    if role == "cover":
-        add("rect", "Decoration Accent Rule", MARGIN, MARGIN + TITLE_HEIGHT, 2400000, 45720, "alert_red")
-        add(
-            "ellipse",
-            "Decoration Circle Motif",
-            cx - 1800000,
-            cy - 1800000,
-            3200000,
-            3200000,
-            "primary_green",
-            alpha=20000,
-        )
-        warnings.append("표지 로고는 보호영역 미확정으로 자동 배치하지 않음(brand.json.logo.placement_status)")
-    elif role == "section-divider":
-        size = 5200000
-        add("ellipse", "Decoration Circle Motif", (cx - size) // 2, (cy - size) // 2, size, size, "pale_mint")
+    if role in {"cover", "section-divider"}:
+        add("rect", "Decoration Full Background", 0, 0, cx, cy, "primary_green")
+        if role == "cover":
+            warnings.append("표지 로고는 보호영역 미확정으로 자동 배치하지 않음(brand.json.logo.placement_status)")
     elif role == "data-body":
         add("rect", "Decoration Divider Rule", MARGIN, MARGIN + TITLE_HEIGHT, body_cx, 25400, "pale_mint")
 
     return "".join(shapes), warnings
 
 
-def _title_shape(title: str, *, align: str | None = None) -> str:
+def _title_shape(title: str, *, color: str | None = None) -> str:
     return (
         '<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/>'
         '<p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr/>'
-        f"<p:txBody><a:bodyPr/><a:lstStyle/>{_paragraph(title, align=align)}</p:txBody></p:sp>"
+        f"<p:txBody><a:bodyPr/><a:lstStyle/>{_paragraph(title, color=color)}</p:txBody></p:sp>"
     )
 
 
-def _table_xml(rows: list[list[str]], cx: int, cy: int) -> str:
+def _table_cell(text: str, *, fill: str | None = None, color: str | None = None, bold: bool = False) -> str:
+    """표 셀 하나. 재무 현황(5p)의 헤더 진한 배경·흰 글씨, 부분합 줄무늬 배경을 근거로
+    header/band 색을 brand.json 색상 역할로 채운다(layouts.json의 table_colors.header와
+    같은 지정)."""
+    bold_attr = ' b="1"' if bold else ""
+    fill_xml = f'<a:solidFill><a:srgbClr val="{color}"/></a:solidFill>' if color else ""
+    rPr = f"<a:rPr{bold_attr}>{fill_xml}</a:rPr>" if bold or color else ""
+    tcPr = f'<a:tcPr><a:solidFill><a:srgbClr val="{fill}"/></a:solidFill></a:tcPr>' if fill else "<a:tcPr/>"
+    return (
+        f"<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r>{rPr}"
+        f"<a:t>{_escape(text)}</a:t></a:r></a:p></a:txBody>{tcPr}</a:tc>"
+    )
+
+
+def _table_xml(rows: list[list[str]], cx: int, cy: int, brand: dict) -> str:
     column_count = max((len(row) for row in rows), default=1)
     column_width = cx // column_count if column_count else cx
     row_height = cy // len(rows) if rows else cy
     grid_cols = "".join(f'<a:gridCol w="{column_width}"/>' for _ in range(column_count))
+    header_hex = _role_hex(brand, "deep_teal")
+    band_hex = _role_hex(brand, "pale_mint")
     body_rows = []
-    for row in rows:
-        cells = "".join(
-            "<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r>"
-            f"<a:t>{_escape(cell)}</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>"
-            for cell in row
-        )
+    for row_index, row in enumerate(rows):
+        is_header = row_index == 0
+        fill = header_hex if is_header else (band_hex if row_index % 2 == 1 else None)
+        color = "FFFFFF" if is_header else None
+        cells = "".join(_table_cell(cell, fill=fill, color=color, bold=is_header) for cell in row)
         padding = "".join(
-            "<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p/></a:txBody><a:tcPr/></a:tc>"
-            for _ in range(column_count - len(row))
+            _table_cell("", fill=fill) for _ in range(column_count - len(row))
         )
         body_rows.append(f'<a:tr h="{row_height}">{cells}{padding}</a:tr>')
     return (
@@ -374,9 +384,10 @@ def _parse_slide(slide: dict) -> tuple[str, list[str], list[list[str]] | None, l
     return title, extra_texts, table_rows, warnings
 
 
-# ROLE_ALIGN: layouts.json의 배치 힌트(예: section-divider의 "center") 중
-# 이 v1이 실제로 반영하는 부분만 옮겨 적는다. 나머지(장식 모티프 등)는 아직 없다.
-ROLE_ALIGN = {"section-divider": "ctr"}
+# TITLE_COLOR: cover/section-divider는 실제 하나증권 자료 대조 결과 전체 배경이
+# primary_green이라 제목을 흰색으로 그려야 읽힌다. 왼쪽 정렬은 두 역할 모두 기본값과
+# 같아 별도 처리가 필요 없다(실제 자료에 가운데 정렬 제목은 없었다).
+TITLE_COLOR = {"cover": "FFFFFF", "section-divider": "FFFFFF"}
 
 
 def _render_cover(extra_texts: list[str]) -> tuple[str, list[str]]:
@@ -384,7 +395,7 @@ def _render_cover(extra_texts: list[str]) -> tuple[str, list[str]]:
     subtitle = extra_texts[0] if extra_texts else ""
     if len(extra_texts) > 1:
         warnings.append("표지 레이아웃은 제목·부제만 배치하며 나머지 텍스트는 생략됨")
-    inner = _paragraph(subtitle) if subtitle else "<a:p/>"
+    inner = _paragraph(subtitle, color="FFFFFF") if subtitle else "<a:p/>"
     return _content_placeholder(inner), warnings
 
 
@@ -400,9 +411,11 @@ def _render_disclaimer(extra_texts: list[str]) -> tuple[str, list[str]]:
     return _content_placeholder(paragraphs), []
 
 
-def _render_data_body(extra_texts: list[str], table_rows: list[list[str]] | None, body_cx: int, body_cy: int) -> tuple[str, list[str]]:
+def _render_data_body(
+    extra_texts: list[str], table_rows: list[list[str]] | None, body_cx: int, body_cy: int, brand: dict
+) -> tuple[str, list[str]]:
     if table_rows:
-        return _table_xml(table_rows, body_cx, body_cy), []
+        return _table_xml(table_rows, body_cx, body_cy, brand), []
     return _content_placeholder(_bullets_body(extra_texts)), []
 
 
@@ -417,11 +430,11 @@ def _render_slide(
     elif role == "disclaimer":
         body_xml, role_warnings = _render_disclaimer(extra_texts)
     else:
-        body_xml, role_warnings = _render_data_body(extra_texts, table_rows, body_cx, body_cy)
+        body_xml, role_warnings = _render_data_body(extra_texts, table_rows, body_cx, body_cy, brand)
     warnings.extend(role_warnings)
     decoration_xml, decoration_warnings = _decorations_for_role(role, brand, cx, cy, body_cx)
     warnings.extend(decoration_warnings)
-    title_xml = _title_shape(title, align=ROLE_ALIGN.get(role))
+    title_xml = _title_shape(title, color=TITLE_COLOR.get(role))
     slide_xml = (
         XML_HEADER
         + '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '

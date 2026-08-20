@@ -516,17 +516,17 @@ class BuildDeckTests(unittest.TestCase):
         self.assertNotIn("무시되는 셋째 텍스트", cover)
         self.assertTrue(any("표지 레이아웃은 제목·부제만 배치" in warning for warning in result["warnings"]))
 
-        self.assertIn('<a:pPr algn="ctr"/>', divider)
         self.assertNotIn("금지된 본문 텍스트", divider)
         self.assertTrue(any("섹션 구분 레이아웃은 본문을 배치하지 않는다" in warning for warning in result["warnings"]))
 
     def test_layout_plan_draws_layouts_json_decorations_per_role(self):
+        """cover/section-divider 장식은 실제 하나증권 배포 자료(hana-securities-2025-profile)를
+        대조해 전체 배경을 primary_green으로 채우고 제목을 흰색으로 그리는 것으로 확정했다
+        (references/hana-securities-cover-pattern-correction.md)."""
         brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
         layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
         brand = json.loads(brand_path.read_text(encoding="utf-8"))
-        alert_red = brand["colors"]["alert_red"]["value"].lstrip("#").upper()
         primary_green = brand["colors"]["primary_green"]["value"].lstrip("#").upper()
-        pale_mint = brand["colors"]["pale_mint"]["value"].lstrip("#").upper()
         with tempfile.TemporaryDirectory() as directory:
             deck_spec_path = self._write_role_deck_spec(directory)
             plan_path = Path(directory) / "plan.json"
@@ -542,16 +542,15 @@ class BuildDeckTests(unittest.TestCase):
                 divider = archive.read("ppt/slides/slide2.xml").decode("utf-8")
                 disclaimer = archive.read("ppt/slides/slide3.xml").decode("utf-8")
 
-        self.assertIn('<a:prstGeom prst="rect">', cover)
-        self.assertIn(f'<a:srgbClr val="{alert_red}">', cover)
-        self.assertIn('<a:prstGeom prst="ellipse">', cover)
-        self.assertIn(f'<a:srgbClr val="{primary_green}"><a:alpha val="20000"/></a:srgbClr>', cover)
+        for slide_xml in (cover, divider):
+            self.assertIn('"Decoration Full Background"', slide_xml)
+            self.assertIn(f'<a:srgbClr val="{primary_green}">', slide_xml)
+            self.assertIn('<a:off x="0" y="0"/>', slide_xml)
+            self.assertIn('<a:srgbClr val="FFFFFF"/>', slide_xml)  # 흰 제목
+            self.assertLess(slide_xml.index("Decoration Full Background"), slide_xml.index('name="Title"'))
         self.assertTrue(
             any("표지 로고는 보호영역 미확정으로 자동 배치하지 않음" in warning for warning in result["warnings"])
         )
-
-        self.assertIn('<a:prstGeom prst="ellipse">', divider)
-        self.assertIn(f'<a:srgbClr val="{pale_mint}">', divider)
 
         self.assertNotIn("Decoration", disclaimer)
         self.assertIn("본 자료는 정보 제공 목적으로만 작성되었습니다.", disclaimer)
@@ -571,6 +570,22 @@ class BuildDeckTests(unittest.TestCase):
         self.assertIn(f'<a:srgbClr val="{pale_mint}">', slide1)
         # 장식 도형이 제목/본문보다 spTree에서 먼저 나와야 뒤에 깔린다.
         self.assertLess(slide1.index("Decoration Divider Rule"), slide1.index('name="Title"'))
+
+    def test_table_header_and_band_rows_use_brand_colors(self):
+        """재무 현황(5p) 실제 자료의 진한 헤더·옅은 줄무늬를 근거로 한 표 스타일."""
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        brand = json.loads(brand_path.read_text(encoding="utf-8"))
+        deep_teal = brand["colors"]["deep_teal"]["value"].lstrip("#").upper()
+        pale_mint = brand["colors"]["pale_mint"]["value"].lstrip("#").upper()
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_deck_spec(directory)
+            out_path = Path(directory) / "out.pptx"
+            BUILD.build_deck(deck_spec_path, brand_path, out_path)
+            with zipfile.ZipFile(out_path) as archive:
+                slide2 = archive.read("ppt/slides/slide2.xml").decode("utf-8")
+        self.assertIn(f'<a:tcPr><a:solidFill><a:srgbClr val="{deep_teal}"/></a:solidFill></a:tcPr>', slide2)
+        self.assertIn('<a:rPr b="1"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:rPr>', slide2)
+        self.assertIn(f'<a:tcPr><a:solidFill><a:srgbClr val="{pale_mint}"/></a:solidFill></a:tcPr>', slide2)
 
     def test_layout_plan_requires_both_layouts_and_plan(self):
         brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
