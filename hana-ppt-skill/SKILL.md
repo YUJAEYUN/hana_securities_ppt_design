@@ -15,7 +15,7 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 ## 요청 분기
 
 - 레퍼런스 분석: `references/reference-analysis.md`와 관련 문서군 패턴만 읽는다.
-- 색상·서체·로고: `references/design-tokens.md`, 폰트 manifest와 CI 자산을 읽는다.
+- 색상·서체·로고: `references/design-tokens.md`(운영 프로필 근거), 폰트 manifest와 CI 자산을 읽는다. 사용자가 제공한 공식 CI 컬러·서체 수치는 `assets/ci-colors.json`/`assets/ci-typography.json`(둘 다 `official_ci_specification: true`)과 `references/official-ci-specification.md`를 따로 둔다. 이 공식 CI 정본은 아직 `brand.json`(운영 프로필, `official_ci_specification: false`)에 병합되지 않았으므로 실행 스크립트는 여전히 `brand.json`만 쓴다. 심볼마크는 `assets/logo/HanaSecurities_symbol-mark.png`/`HanaSecurities_logo-lockup.png`(실제 배포 자료에서 추출, 투명 배경)와 기존 `assets/logo/HanaSecurities_CI.ai`(벡터 원본)를 함께 참고하되, 보호영역·최소 크기가 없으므로 자동 배치에는 쓰지 않는다.
 - 문체·말투: `assets/voice.json`을 실행 정본으로, `references/voice-and-tone.md`를 판단 근거로 읽는다. `restyle-only`에서는 진단만 하고 원문을 바꾸지 않으며, `hana-refine`에서도 수치·기간·비교 기준을 잠근다.
 - 레이아웃: `assets/layouts.json`을 실행 정본으로, `references/layout-patterns.md`(문서군 공통 선택 규칙)와 `references/hfg-ir-patterns.md`(hfg-ir 문서군 패턴)를 판단 근거로 읽는다.
 - PPT 인수: `scripts/ingest_deck.py`로 원본을 변경하지 않고 `deck_spec.json` 인벤토리를 생성한다. 미지원 요소 경고를 손실 없는 변환 성공으로 간주하지 않는다.
@@ -38,3 +38,5 @@ description: Develop, maintain, and eventually run the Hana Securities PowerPoin
 ## 현재 한계
 
 현재 `brand.json`과 `layouts.json`은 모두 사용자가 로컬 하나금융그룹 IR 자료를 기준으로 승인한 운영 프로필이며 하나증권 공식 CI·레이아웃 규격이 아니다. PPT 변환 스크립트와 렌더 검증이 갖춰질 때까지 완성된 하나증권 PPT 변환 기능으로 취급하지 않는다. `build_deck.py`는 `cover`/`section-divider`/`disclaimer` 세 역할만 배치를 지원하고 나머지 역할은 기본(data-body) 레이아웃으로 대체된다. `restyle_deck.py`(기존 파일 편집)는 레이아웃 배치 수준 재구성이 아직 전혀 없다.
+
+사용자가 공식 CI 컬러·서체 수치와 실제 하나증권 배포 자료(심볼마크 추출·색상 검증에 사용)를 제공해 `assets/ci-colors.json`/`assets/ci-typography.json`으로 등록했지만(`official_ci_specification: true`), 이 값은 아직 `brand.json`에 병합되지 않았고 실행 스크립트가 사용하지도 않는다. `references/official-ci-specification.md`의 "남은 작업"이 모두 채워지기 전까지 `brand.json`을 공식 CI 기준으로 바꾸지 않는다.

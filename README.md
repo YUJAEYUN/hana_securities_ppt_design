@@ -89,4 +89,5 @@ python tools/task_harness.py check
 - `brand.json`, `voice.json`, `layouts.json`은 모두 사용자 승인된 HFG IR 기반 운영 프로필이며 하나증권 공식 CI·문체·레이아웃 규격이 아닙니다.
 - `brand.candidate.json`과 `layouts.candidate.json`은 승인 전 추출·검토 기록으로 남아 있습니다.
 - 하나증권 리서치 자료 한 건은 예외 사례로 지정돼 스타일 학습에서 제외됐습니다.
+- 사용자가 제공한 공식 CI 컬러·서체 수치는 `hana-ppt-skill/assets/ci-colors.json`/`ci-typography.json`(둘 다 `official_ci_specification: true`)에 별도로 등록돼 있고, 실제 하나증권 배포 자료로 색상·심볼마크를 검증했습니다(`hana-ppt-skill/references/official-ci-specification.md`). 다만 아직 `brand.json`에 병합되지 않았고 실행 스크립트도 이 값을 쓰지 않습니다.
 - 슬라이드 요소·레이아웃 배치 수준 재구성, 폰트 임베딩, 구조/시각 자동 품질 검사는 아직 없습니다.

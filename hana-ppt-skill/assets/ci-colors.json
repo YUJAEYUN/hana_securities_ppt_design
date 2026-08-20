@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "status": "approved",
+  "name": "하나 CI 공식 컬러 시스템",
+  "scope": "hana-group-ci-color-system",
+  "official_ci_specification": true,
+  "approved_at": "2026-08-20",
+  "approval": {
+    "actor": "user",
+    "record": "대화에서 하나 공식 CI 컬러 시스템의 팬톤·CMYK·RGB·HEX 수치를 직접 입력해 제공하고 등록을 승인. 이후 실제 하나증권 배포 자료(hana-securities-2025-profile)를 첨부해 심볼마크 원본과 색상 검증 근거를 추가로 제공.",
+    "limitations_acknowledged": [
+      "심볼마크(로고)는 사용자가 제공한 실제 배포 자료에서 추출해 logo.symbol_mark/lockup_with_wordmark로 등록했지만, 보호영역·최소 크기·배경별 사용 규칙은 여전히 미확정이다.",
+      "Special 컬러(Gold/Light Gold/Silver)는 팬톤 코드만 제공되어 CMYK/RGB/HEX 필드를 비워 둔다. 금·은색 같은 메탈릭 팬톤은 표준 RGB/HEX로 정확히 환산되지 않으므로 임의로 계산하지 않는다.",
+      "일부 색상은 사용자가 제공한 HEX와 RGB 수치가 서로 정확히 일치하지 않는다(color별 consistency_check 참고). 어느 쪽이 맞는지 임의로 판단하지 않고 원본 그대로 기록했으니 공식 CI 가이드북 원본 대조가 필요하다."
+    ]
+  },
+  "provenance": {
+    "method": "사용자가 대화에서 공식 CI 컬러 수치를 직접 입력해 제공. 실제 하나증권 배포 자료로 픽셀 단위 검증(verification 섹션 참고).",
+    "source": "user-provided-official-ci-values",
+    "source_ids": ["hana-securities-2025-profile"]
+  },
+  "relationship_to_operational_brand": "assets/brand.json은 이 공식 CI 컬러가 아니라 로컬 HFG IR 관찰값을 하나증권 운영 기준으로 쓰며 official_ci_specification=false로 명시돼 있다. 이 파일의 공식 색상 수치를 실제 실행(build_deck.py/restyle_deck.py)에 반영하려면 로고 보호영역 등 나머지 공식 CI 요소를 마저 확보한 뒤 brand.json과 관련 테스트(tests/test_repository.py)를 함께 갱신해야 한다. 그 전까지는 이 파일이 참조용 공식 정본이고 brand.json은 별개로 유지된다.",
+  "palette": {
+    "main": {
+      "hana_green": {
+        "display_name": "Hana Green",
+        "role": "메인 컬러",
+        "pantone": "3288 C",
+        "cmyk": {"c": 100, "m": 0, "y": 65, "k": 15},
+        "rgb": {"r": 0, "g": 145, "b": 120},
+        "hex": "#009178",
+        "consistency_check": "HEX와 RGB 수치 일치"
+      },
+      "hana_red": {
+        "display_name": "Hana Ren",
+        "display_name_note": "사용자가 'Hana Ren'으로 표기함. 'Hana Red'의 오기일 가능성이 있어 원문 표기를 그대로 보존하고 이 필드에 남긴다. 공식 가이드북 대조 필요.",
+        "role": "메인 컬러",
+        "pantone": "3546 C",
+        "cmyk": {"c": 10, "m": 100, "y": 100, "k": 0},
+        "rgb": {"r": 220, "g": 35, "b": 30},
+        "hex": "#DC231E",
+        "consistency_check": "HEX와 RGB 수치 일치"
+      }
+    },
+    "sub": {
+      "hana_dark_green": {
+        "display_name": "Hana Dark Green",
+        "role": "서브 컬러",
+        "pantone": "3305 C",
+        "cmyk": {"c": 95, "m": 15, "y": 60, "k": 60},
+        "rgb": {"r": 0, "g": 78, "b": 66},
+        "hex": "#004E42",
+        "consistency_check": "HEX와 RGB 수치 일치"
+      },
+      "hana_pale_green": {
+        "display_name": "Hana Pale Green",
+        "role": "서브 컬러",
+        "pantone": "573 C",
+        "cmyk": {"c": 15, "m": 0, "y": 10, "k": 0},
+        "rgb": {"r": 215, "g": 237, "b": 230},
+        "hex": "#DBEDE7",
+        "consistency_check": "불일치: HEX #DBEDE7을 RGB로 환산하면 (219, 237, 231)로 R값이 4, B값이 1 어긋난다(반올림/인쇄 변환 오차로 추정). 원본 표기 그대로 보존."
+      }
+    },
+    "point": {
+      "hana_light_green": {
+        "display_name": "Hana Light Green",
+        "role": "포인트 컬러",
+        "pantone": "345 C",
+        "cmyk": {"c": 35, "m": 0, "y": 35, "k": 0},
+        "rgb": {"r": 167, "g": 216, "b": 183},
+        "hex": "#A7D8B8",
+        "consistency_check": "불일치: HEX #A7D8B8을 RGB로 환산하면 (167, 216, 184)로 B값이 1 어긋난다(반올림 오차로 추정). 원본 표기 그대로 보존."
+      },
+      "hana_point_green": {
+        "display_name": "Hana Point Green",
+        "role": "포인트 컬러",
+        "pantone": "381 C",
+        "cmyk": {"c": 25, "m": 0, "y": 100, "k": 0},
+        "rgb": {"r": 206, "g": 220, "b": 88},
+        "hex": "#CEDC00",
+        "consistency_check": "불일치(경고): HEX #CEDC00을 RGB로 환산하면 (206, 220, 0)이지만 사용자가 제공한 RGB는 B=88이다. 단순 반올림 오차 범위를 벗어나 원본 CI 가이드북 대조로 재확인이 필요하다. 임의로 어느 값을 정답으로 택하지 않았다."
+      }
+    },
+    "special": {
+      "hana_gold": {
+        "display_name": "Hana Gold",
+        "role": "스페셜 컬러",
+        "pantone": "871 C",
+        "pantone_note": "사용자 입력 '87 1 C'를 공백 오타로 보고 '871 C'로 정규화했다(팬톤 871 C는 실제로 존재하는 메탈릭 골드 코드).",
+        "cmyk": null,
+        "rgb": null,
+        "hex": null,
+        "consistency_check": "CMYK/RGB/HEX 미제공. 메탈릭 팬톤은 표준 색공간으로 정확히 환산되지 않아 임의로 값을 만들지 않았다."
+      },
+      "hana_light_gold": {
+        "display_name": "Hana Light Gold",
+        "role": "스페셜 컬러",
+        "pantone": "8003 C",
+        "cmyk": null,
+        "rgb": null,
+        "hex": null,
+        "consistency_check": "CMYK/RGB/HEX 미제공. 메탈릭 팬톤은 표준 색공간으로 정확히 환산되지 않아 임의로 값을 만들지 않았다."
+      },
+      "hana_silver": {
+        "display_name": "Hana Silver",
+        "role": "스페셜 컬러",
+        "pantone": "877 C",
+        "cmyk": null,
+        "rgb": null,
+        "hex": null,
+        "consistency_check": "CMYK/RGB/HEX 미제공. 메탈릭 팬톤은 표준 색공간으로 정확히 환산되지 않아 임의로 값을 만들지 않았다."
+      }
+    }
+  },
+  "verification": {
+    "method": "사용자가 제공한 실제 하나증권 배포 자료(reference-decks/hana-securities/2025_Hana_Securities_Profile.pdf, source_id=hana-securities-2025-profile)를 PDF 렌더링 후 픽셀 단위로 대조",
+    "result": "표지 배경색이 정확히 RGB(0,145,120)=#009178로 렌더링되어 hana_green 값과 완전히 일치함을 확인했다. 로고 심볼마크의 초록·빨강 색상도 각각 hana_green(#009178), hana_red(#DC231E) 정본과 정확히 일치했다.",
+    "not_yet_verified": [
+      "hana_point_green의 RGB/HEX 불일치는 이 문서의 그라데이션·투명도 레이어 때문에 픽셀 대조로 해소하지 못했다(여러 겹의 반투명 도형이 섞여 있어 단일 원색으로 역산이 불가능). 공식 CI 가이드북 원본 대조가 여전히 필요하다.",
+      "Special 컬러(Gold/Light Gold/Silver)는 이 문서에서 사용된 사례를 찾지 못해 검증하지 못했다."
+    ]
+  },
+  "logo": {
+    "status": "extracted-from-official-source",
+    "symbol_mark": "logo/HanaSecurities_symbol-mark.png",
+    "lockup_with_wordmark": "logo/HanaSecurities_logo-lockup.png",
+    "extraction_method": "reference-decks/hana-securities/2025_Hana_Securities_Profile.pdf 표지의 벡터 로고를 600dpi로 래스터화한 뒤, 흰 배경에서 공식 CI 컬러(hana_green/hana_red) 정본 값을 기준으로 알파 채널을 역산해 투명 배경 PNG로 분리했다. 두 색 모두 정본 HEX와 정확히 일치함을 확인했다.",
+    "policy": "이 심볼마크는 실제 배포 자료에서 추출한 것으로 기존 assets/logo/HanaSecurities_CI.ai(벡터 원본)를 대체하지 않는다. 보호영역(safe area), 최소 크기, 어두운 배경 위 사용 규칙(예: 흰색 반전 버전)은 여전히 미확정이므로 brand.json.logo.placement_status의 blocked-until-ci-guide 상태는 유지한다."
+  }
+}
