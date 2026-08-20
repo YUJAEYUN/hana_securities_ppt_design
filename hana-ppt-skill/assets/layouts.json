@@ -11,12 +11,13 @@
     "limitations_acknowledged": [
       "하나증권 자체 대표 자료가 아니라 하나금융그룹(그룹사) IR 2건에서 관찰한 레이아웃 문법이다.",
       "유일한 하나증권 자료(리서치센터 8월 시장전망)는 사용자가 예외 사례로 지정해 이 승인 범위에서 계속 제외한다.",
-      "그룹 IR의 원형 모티프·슬로건처럼 그룹 고유 문법은 하나증권 자료에 무조건 복제하지 않는다."
+      "그룹 IR의 원형 모티프·슬로건처럼 그룹 고유 문법은 하나증권 자료에 무조건 복제하지 않는다.",
+      "2026-08-20: 사용자가 실제 하나증권 자료(hana-securities-2025-profile)를 제공해, 그 경고가 실제로 맞았음을 확인했다. cover, section-divider, strategic-kpi, executive-summary 네 패턴을 이 실제 자료 근거로 교체했다(옛 추정은 각 패턴의 superseded 필드에 보존). data-body(장식 제외)/disclaimer/closing은 아직 이 자료로 대조하지 않아 HFG IR 근거 그대로다."
     ]
   },
   "provenance": {
-    "method": "references/hfg-ir-patterns.md에 정리된 관찰 결과를 문서군·슬라이드 유형별 구조로 재정리하고 사용자 승인 범위로 확정",
-    "source_ids": ["hfg-1q26-kor", "hfg-1h26-kor"],
+    "method": "references/hfg-ir-patterns.md에 정리된 관찰 결과를 문서군·슬라이드 유형별 구조로 재정리하고 사용자 승인 범위로 확정. cover/section-divider는 이후 실제 하나증권 자료로 재검증.",
+    "source_ids": ["hfg-1q26-kor", "hfg-1h26-kor", "hana-securities-2025-profile"],
     "excluded_source_ids": ["hana-securities-2026-08-market-strategy"],
     "candidate_input": "layouts.candidate.json",
     "analysis": "reference-analysis.json",
@@ -47,37 +48,81 @@
   "patterns": {
     "cover": {
       "elements": [
-        {"element": "logo", "placement": "top-left"},
-        {"element": "title-and-date", "placement": "left"},
-        {"element": "thin-red-rule", "placement": "accent-line"},
-        {"element": "green-circle-motif", "placement": "right-or-bottom"},
-        {"element": "slogan", "placement": "small-supporting"}
+        {"element": "full-bleed-background", "color": "primary_green", "placement": "entire-slide"},
+        {"element": "title-and-subtitle", "color": "background", "placement": "left"},
+        {"element": "logo-badge", "placement": "top-right", "style": "white-rounded-tag"},
+        {"element": "logo-lockup", "placement": "bottom-left-footer-band", "style": "white-band"}
       ],
-      "evidence_pages": {"hfg-1q26-kor": [1], "hfg-1h26-kor": [1]}
+      "evidence_pages": {"hana-securities-2025-profile": [1]},
+      "note": "2026-08-20에 실제 하나증권 자료로 교체. thin-red-rule/green-circle-motif는 없었고 표지 전체가 primary_green으로 꽉 차 있었다. logo-badge/logo-lockup은 로고 보호영역이 미확정이라 build_deck.py가 아직 자동 배치하지 않고 경고로만 보고한다(brand.json.logo.policy).",
+      "superseded": {
+        "elements": [
+          {"element": "logo", "placement": "top-left"},
+          {"element": "title-and-date", "placement": "left"},
+          {"element": "thin-red-rule", "placement": "accent-line"},
+          {"element": "green-circle-motif", "placement": "right-or-bottom"},
+          {"element": "slogan", "placement": "small-supporting"}
+        ],
+        "reason": "하나금융그룹 IR 2건(hfg-1q26-kor/hfg-1h26-kor) 근거로 추정했던 옛 패턴. 실제 하나증권 자료 대조로 교체됐다.",
+        "evidence_pages": {"hfg-1q26-kor": [1], "hfg-1h26-kor": [1]}
+      }
     },
     "strategic-kpi": {
       "elements": [
-        {"element": "kpi-circles", "count": "2-4", "placement": "large-first-read"},
-        {"element": "caption", "placement": "short-below"}
+        {"element": "stat-columns", "count": "columns(에이전트 지정)", "placement": "grid"},
+        {"element": "stat-label", "color": "deep_teal", "placement": "column-top"},
+        {"element": "stat-rule", "color": "pale_mint", "placement": "under-label"},
+        {"element": "stat-value", "color": "primary_green", "style": "bold-large", "placement": "column-bottom"}
       ],
-      "evidence_pages": {"hfg-1h26-kor": [2]},
-      "note": "1Q26에는 이 슬라이드 유형이 없어 근거가 1H26 단독이다."
+      "evidence_pages": {"hana-securities-2025-profile": [7]},
+      "note": "2026-08-20에 실제 하나증권 자료(국내·외 네트워크, 7p)로 교체. HFG IR의 원형 KPI가 아니라 레이블(작은 글씨) 위 + 얇은 선 + 큰 숫자(굵게, primary_green)로 된 통계 블록이었다. build_deck.py의 strategic-kpi는 열마다 정확히 [레이블, 값] 두 텍스트를 요구하고, 열 개수(columns)는 layout-plan에서 에이전트/사람이 명시한다 — 몇 열이 맞는지는 원본 슬라이드를 보고 판단할 몫이라 스크립트가 추측하지 않는다.",
+      "superseded": {
+        "elements": [
+          {"element": "kpi-circles", "count": "2-4", "placement": "large-first-read"},
+          {"element": "caption", "placement": "short-below"}
+        ],
+        "reason": "하나금융그룹 IR(1H26, 1Q26에는 이 유형이 없어 1H26 단독 근거) 추정. 실제 하나증권 자료 대조로 교체됐다.",
+        "evidence_pages": {"hfg-1h26-kor": [2]}
+      }
     },
     "executive-summary": {
       "elements": [
-        {"element": "kpi-card", "style": "green-outline", "placement": "left-column"},
-        {"element": "explanation-module", "style": "gray", "placement": "right-column-stacked"}
+        {"element": "card-columns", "count": "columns(에이전트 지정)", "placement": "grid"},
+        {"element": "card-top-bar", "color": "deep_teal", "placement": "column-top"},
+        {"element": "card-header", "color": "pale_mint", "style": "bold-centered-heading", "placement": "under-top-bar"},
+        {"element": "card-divider", "color": "deep_teal", "placement": "under-header"},
+        {"element": "card-bullets", "placement": "under-divider"},
+        {"element": "card-bottom-rule", "color": "deep_teal", "placement": "column-bottom"}
       ],
-      "evidence_pages": {"hfg-1q26-kor": [2], "hfg-1h26-kor": [3]}
+      "evidence_pages": {"hana-securities-2025-profile": [11]},
+      "note": "2026-08-20에 실제 하나증권 자료(주요 사업영역, 11p — WM/IB/S&T 3열 카드)로 교체. HFG IR의 '왼쪽 KPI카드 + 오른쪽 설명모듈' 2단 구성이 아니라, 같은 모양의 카드가 3열로 나란히 있는 구성이었다. build_deck.py의 executive-summary는 열마다 같은 개수의 텍스트(첫 번째는 카드 제목, 나머지는 불릿)를 요구하고, 열 개수(columns)는 layout-plan에서 에이전트/사람이 명시한다.",
+      "superseded": {
+        "elements": [
+          {"element": "kpi-card", "style": "green-outline", "placement": "left-column"},
+          {"element": "explanation-module", "style": "gray", "placement": "right-column-stacked"}
+        ],
+        "reason": "하나금융그룹 IR 2건 근거로 추정했던 옛 패턴. 실제 하나증권 자료 대조로 교체됐다.",
+        "evidence_pages": {"hfg-1q26-kor": [2], "hfg-1h26-kor": [3]}
+      }
     },
     "section-divider": {
       "elements": [
-        {"element": "section-title", "color": "primary_green", "placement": "center"},
-        {"element": "circle-motif", "style": "pale-large", "placement": "center-background"},
-        {"element": "mini-toc", "placement": "right-small"}
+        {"element": "full-bleed-background", "color": "primary_green", "placement": "entire-slide"},
+        {"element": "section-title", "color": "background", "placement": "left", "vertical": "mid-lower"},
+        {"element": "mini-toc", "color": "pale_mint", "placement": "left-below-title"}
       ],
       "prohibited_content": ["data", "long-body-text"],
-      "evidence_pages": {"hfg-1q26-kor": [3, 13, 18], "hfg-1h26-kor": [4, 14, 19]}
+      "evidence_pages": {"hana-securities-2025-profile": [3, 10]},
+      "note": "2026-08-20에 실제 하나증권 자료(서로 다른 챕터의 섹션 구분 2곳, INTRODUCTION과 핵심사업)로 교체. 두 곳 모두 왼쪽 정렬 제목이었고 원형 모티프는 없었다. mini-toc은 prohibited_content 규칙(본문 금지) 때문에 build_deck.py가 아직 그리지 않는다.",
+      "superseded": {
+        "elements": [
+          {"element": "section-title", "color": "primary_green", "placement": "center"},
+          {"element": "circle-motif", "style": "pale-large", "placement": "center-background"},
+          {"element": "mini-toc", "placement": "right-small"}
+        ],
+        "reason": "하나금융그룹 IR 2건 근거로 추정했던 옛 패턴. 실제 하나증권 자료 대조로 교체됐다.",
+        "evidence_pages": {"hfg-1q26-kor": [3, 13, 18], "hfg-1h26-kor": [4, 14, 19]}
+      }
     },
     "data-body": {
       "roles": ["chart", "table"],
@@ -89,10 +134,18 @@
         {"element": "comment-box", "style": "gray", "placement": "right-optional"}
       ],
       "chart_colors": {"primary": "deep_teal", "secondary": "pale_mint", "exception_marker": "alert_red"},
-      "table_colors": {"header": "deep_teal", "body": "background", "supporting_text": "gray"},
+      "table_colors": {
+        "header": "deep_teal",
+        "header_text": "background",
+        "body": "background",
+        "band_row": "pale_mint",
+        "supporting_text": "gray"
+      },
+      "table_colors_note": "header/band_row는 2026-08-20에 실제 하나증권 재무 현황 표(hana-securities-2025-profile p5)로 보강했다. 원본은 부분합·합계 행만 옅게 칠했지만, deck_spec에는 어떤 행이 부분합인지 표시가 없어 그 판단을 자동으로 추측하지 않는다. 대신 홀수 번째 본문 행마다 band_row를 입혀 줄무늬 가독성만 재현한다(build_deck.py의 결정적 규칙, 내용 추측 아님).",
       "evidence_pages": {
         "hfg-1q26-kor": [4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22, 23],
-        "hfg-1h26-kor": [5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 20, 21, 22, 23, 24]
+        "hfg-1h26-kor": [5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 20, 21, 22, 23, 24],
+        "hana-securities-2025-profile": [5]
       }
     },
     "disclaimer": {

@@ -2,9 +2,9 @@
 
 <!-- 이 파일은 project-state.json에서 생성됩니다. 직접 편집하지 마세요. -->
 
-- 갱신일: `2026-08-18`
+- 갱신일: `2026-08-20`
 - 현재 단계: `brand-voice-layout-profiles-approved`
-- 요약: 로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json, voice.json, layouts.json을 모두 확정했다. 하나증권 공식 CI·공식 문체·공식 레이아웃으로 주장하지 않는다. PPT 처리 계층을 엔진(범용 PPTX 조작)과 규칙(하나증권 브랜드·문체·레이아웃) 두 겹으로 분리하기로 하고, render_slides.py에 이어 restyle_deck.py(restyle-only + hana-refine, 텍스트 런 수준)와 build_deck.py(deck_spec.json에서 새 PPTX 생성)를 추가했다. 2026-08-18에 layouts.candidate.json의 6개 패턴을 사람이 전체 승인해 layouts.json으로 승격했고, build_deck.py에 --layouts/--layout-plan을 받아 cover/section-divider/disclaimer 역할별로 배치하는 1차 구현을 추가했다(strategic-kpi/executive-summary/closing과 장식 요소는 아직 없음). restyle_deck.py(기존 파일 편집)의 레이아웃 수준 재구성은 아직 시작 전이고, 구조/시각 품질 검사 구현도 남아 있다.
+- 요약: 로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json, voice.json, layouts.json을 모두 확정했다. 하나증권 공식 CI·공식 문체·공식 레이아웃으로 주장하지 않는다. PPT 처리 계층을 엔진(범용 PPTX 조작)과 규칙(하나증권 브랜드·문체·레이아웃) 두 겹으로 분리하기로 하고, render_slides.py에 이어 restyle_deck.py(restyle-only + hana-refine, 텍스트 런 수준)와 build_deck.py(deck_spec.json에서 새 PPTX 생성)를 추가했다. 2026-08-18에 layouts.candidate.json의 6개 패턴을 사람이 전체 승인해 layouts.json으로 승격했고, build_deck.py에 --layouts/--layout-plan을 받아 cover/section-divider/disclaimer 역할별로 배치하는 1차 구현을 추가했다(strategic-kpi/executive-summary/closing과 장식 요소는 아직 없음). restyle_deck.py(기존 파일 편집)의 레이아웃 수준 재구성은 아직 시작 전이고, 구조/시각 품질 검사 구현도 남아 있다. 2026-08-20에 사용자가 하나 공식 CI 컬러 시스템과 하나2.0 서체 사용 규정 수치를 직접 제공해 ci-colors.json/ci-typography.json(둘 다 official_ci_specification: true)으로 등록했다. 처음 안내한 외부 URL은 이 세션의 egress 정책이 차단해(우회하지 않음) 사용자가 같은 PDF(하나증권 회사소개서, 2025 Hana Securities Profile)를 직접 첨부했고, reference-decks/hana-securities에 등록해 표지 배경색·로고 색상을 픽셀 단위로 대조한 결과 Hana Green/Hana Ren 수치와 정확히 일치함을 확인했다. 같은 문서에서 심볼마크(투명 배경 PNG, 심볼 단독/워드마크 포함 두 종)를 추출해 등록했다. Hana Point Green의 RGB(B=88)/HEX(#CEDC00) 불일치는 픽셀 대조로는 해소하지 못했지만, 사용자가 원본 CI 문서에 그대로 적힌 값임을 직접 확인해줘 오기가 아닌 것으로 정리했다. Hana Ren 명칭 확인, Special 컬러 수치, 서체 pt 범위 보완, 로고 보호영역 확보, brand.json 병합은 사용자 요청으로 보류(ci-colors.json의 deferred_by_user 참고)했다. 이어서 사용자가 build_deck.py 산출물이 텍스트·단색 테마 위주라 밋밋하다고 지적해, layouts.json 패턴에 이미 승인돼 있었지만 그려지지 않던 장식 요소(cover의 적색 강조선·초록 원형 모티프, section-divider의 옅은 원형 모티프, data-body의 제목 밑줄)를 OOXML 프리셋 도형으로 구현했다. 로고는 보호영역 미확정 정책을 그대로 지켜 자동 배치하지 않고 경고만 남긴다. 참고 자료에서 아이콘 등을 뽑아 재사용 이미지 라이브러리로 삽입하는 기능은 크기·색 고정 위험이 있어 이번에는 보류하고 로드맵 항목으로만 남겼다. 이어서 사용자가 실제 하나증권 자료와 최대한 비슷하게 만들어달라고 요청해, 표지(1p)와 두 섹션 구분 페이지(3p, 10p)를 다시 대조한 결과 처음 그렸던 적색 강조선·원형 모티프는 실제로 없고 전체 배경이 primary_green으로 꽉 차며 제목이 흰색 왼쪽 정렬이라는 것을 확인해 layouts.json의 cover/section-divider 패턴과 build_deck.py 구현을 이 실제 근거로 교체했다(옛 HFG IR 추정은 각 패턴의 superseded 필드에 보존, references/hana-securities-cover-pattern-correction.md에 정리). 재무 현황 표(5p)를 근거로 표 스타일도 보강해 헤더 행은 deep_teal 배경/흰 글씨, 본문 홀수 행은 pale_mint 옅은 줄무늬로 그린다(부분합 여부는 deck_spec에 표시가 없어 추측하지 않고 기계적 규칙만 적용). 로고 배지·조합은 여전히 보호영역 미확정으로 자동 배치하지 않는다. 이어서 사용자가 '사용자가 알고리즘을 직접 정할 필요 없이 pptx를 첨부하면 알아서 하나증권 양식으로 바꿔주길 원한다'고 제품 방향을 명확히 해, layout-plan 스키마를 문자열 역할 외에 {"role":..., "columns": N} 객체도 받도록 확장하고 strategic-kpi(7p 통계 블록: 레이블+얇은 선+큰 숫자)와 executive-summary(11p 3열 카드: 상단 바+옅은 헤더+구분선+불릿)를 실제 하나증권 자료 근거로 구현했다. columns나 텍스트 개수가 안 맞으면 즉시 오류로 막아 추측하지 않는다. SKILL.md에 '사용자가 PPTX를 첨부하고 하나증권 스타일로 바꿔달라고만 했을 때'의 전체 자동 절차(에이전트가 역할·columns를 스스로 판단해 layout-plan을 작성)를 명시했다. closing 역할과 이미지·아이콘 라이브러리는 여전히 없다. 이어서 사용자가 제공한 PPT 디자인 블로그 글(6:3:1 색상 법칙, 폰트 위계, 여백/밀도, 액션 타이틀 등)과 그 외 널리 알려진 프레임워크(CRAP 원칙, 데이터-잉크 비율 등, 학습 지식 기반 — 이 세션은 임의 URL을 못 읽음)를 references/general-ppt-design-principles.md로 정리하고, 하나증권 고유 근거가 항상 우선하는 보조 참고 자료로 SKILL.md에 연결했다. 대조 결과 대부분 이미 부합했고, '표 헤더 등 강조 텍스트가 합성 볼드만 쓰고 실제 하나2.0 굵기 폰트 파일을 안 쓴다'는 구체적 간극 하나를 찾아 다음 작업 후보로 남겼다(이번엔 코드 미변경).
 
 ## 단계별 상태
 
@@ -12,10 +12,10 @@
 |---|---|---|---|
 | 요구사항과 설계 결정 | 완료 | `docs/PRODUCT.md`<br>`docs/ARCHITECTURE.md`<br>`docs/ROADMAP.md` | - |
 | 스킬 스켈레톤과 입력 자산 | 완료 | `hana-ppt-skill/SKILL.md`<br>`hana-ppt-skill/agents/openai.yaml`<br>`hana-ppt-skill/assets/fonts/manifest.json`<br>`hana-ppt-skill/assets/asset-manifest.json`<br>`.github/workflows/repository-harness.yml`<br>`README.md`<br>`requirements.txt`<br>`tests/test_repository.py` | - |
-| 브랜드 토큰 추출 | 완료 | `hana-ppt-skill/assets/brand.json`<br>`hana-ppt-skill/assets/brand.candidate.json`<br>`hana-ppt-skill/references/design-tokens.md` | - |
-| 레이아웃 패턴 | 완료 | `hana-ppt-skill/assets/layouts.json`<br>`hana-ppt-skill/assets/layouts.candidate.json`<br>`hana-ppt-skill/references/hfg-ir-patterns.md`<br>`hana-ppt-skill/references/layout-patterns.md` | - |
+| 브랜드 토큰 추출 | 완료 | `hana-ppt-skill/assets/brand.json`<br>`hana-ppt-skill/assets/brand.candidate.json`<br>`hana-ppt-skill/references/design-tokens.md`<br>`hana-ppt-skill/assets/ci-colors.json`<br>`hana-ppt-skill/assets/ci-typography.json`<br>`hana-ppt-skill/references/official-ci-specification.md`<br>`hana-ppt-skill/assets/logo/HanaSecurities_symbol-mark.png`<br>`hana-ppt-skill/assets/logo/HanaSecurities_logo-lockup.png`<br>`hana-ppt-skill/assets/reference-decks/hana-securities/2025_Hana_Securities_Profile.pdf` | 공식 CI 컬러·서체(ci-colors.json/ci-typography.json)를 brand.json 운영 정본에 병합 — 사용자 요청으로 보류(ci-colors.json의 deferred_by_user 참고)<br>심볼마크 보호영역·최소 크기·배경별 사용 규칙 — 보류<br>Special 컬러(Gold/Light Gold/Silver) CMYK/RGB/HEX 수치 — 보류<br>Hana Ren 정확한 명칭 확인, 하나2.0 Medium/Condensed Medium pt 범위, Heavy 상한 — 보류 |
+| 레이아웃 패턴 | 완료 | `hana-ppt-skill/assets/layouts.json`<br>`hana-ppt-skill/assets/layouts.candidate.json`<br>`hana-ppt-skill/references/hfg-ir-patterns.md`<br>`hana-ppt-skill/references/layout-patterns.md`<br>`hana-ppt-skill/references/general-ppt-design-principles.md` | - |
 | 문체와 말투 규칙 | 완료 | `hana-ppt-skill/assets/voice.json`<br>`hana-ppt-skill/references/voice-and-tone.md`<br>`hana-ppt-skill/assets/reference-analysis.json` | - |
-| PPT 인수·후처리·생성 | 진행 중 | `hana-ppt-skill/scripts/ingest_deck.py`<br>`hana-ppt-skill/scripts/restyle_deck.py`<br>`hana-ppt-skill/scripts/build_deck.py`<br>`hana-ppt-skill/scripts/text_units.py`<br>`hana-ppt-skill/scripts/verify_evidence_preserved.py`<br>`hana-ppt-skill/references/hana-refine-workflow.md`<br>`hana-ppt-skill/schemas/deck_spec.schema.json`<br>`tests/test_repository.py` | build_deck.py의 strategic-kpi/executive-summary/closing 역할 배치와 장식 요소(적색 선, 원형 모티프)<br>restyle_deck.py(기존 파일 편집)의 레이아웃 배치 수준 재구성 — 아직 전혀 없음<br>build_deck.py의 이미지·그래픽·SmartArt 재현<br>차트·SmartArt 상세 인수<br>실제 PPTX 회귀 픽스처 |
+| PPT 인수·후처리·생성 | 진행 중 | `hana-ppt-skill/scripts/ingest_deck.py`<br>`hana-ppt-skill/scripts/restyle_deck.py`<br>`hana-ppt-skill/scripts/build_deck.py`<br>`hana-ppt-skill/scripts/text_units.py`<br>`hana-ppt-skill/scripts/verify_evidence_preserved.py`<br>`hana-ppt-skill/references/hana-refine-workflow.md`<br>`hana-ppt-skill/schemas/deck_spec.schema.json`<br>`hana-ppt-skill/references/hana-securities-cover-pattern-correction.md`<br>`tests/test_repository.py` | build_deck.py의 closing 역할 배치 — strategic-kpi/executive-summary는 실제 하나증권 자료(7p 통계 블록, 11p 3열 카드) 근거로 구현 완료<br>참고 자료에서 아이콘·삽화 같은 재사용 그래픽 에셋을 뽑아 라이브러리로 등록하고 <p:pic>으로 삽입하는 기능<br>에이전트가 슬라이드 역할·columns를 스스로 판단해 layout-plan을 작성하는 절차(SKILL.md에 문서화)는 아직 실제 임의의 외부 PPTX로 종단간(end-to-end) 검증하지 않았다<br>cover의 로고 배지(우상단)·로고 조합(하단 흰 띠) 배치 — 보호영역 확보 후 진행<br>restyle_deck.py(기존 파일 편집)의 레이아웃 배치 수준 재구성 — 아직 전혀 없음<br>build_deck.py의 이미지·그래픽·SmartArt 재현<br>차트·SmartArt 상세 인수<br>실제 PPTX 회귀 픽스처 |
 | 구조·렌더·시각 품질 검사 | 진행 중 | `hana-ppt-skill/assets/baselines`<br>`hana-ppt-skill/scripts/render_slides.py`<br>`tests/test_repository.py` | quality_check.py<br>visual_check.py<br>contact sheet 생성<br>PowerPoint 렌더러 경로<br>render_slides.py 통합 테스트(soffice/pdftoppm 필요) |
 | 호환성 검증과 배포 | 미착수 | - | Windows/macOS 검증<br>폰트 임베딩 검증<br>샘플 산출물 |
 
@@ -27,9 +27,14 @@
 
 ## 다음 작업
 
-1. build_deck.py에 strategic-kpi(원형 KPI 카드), executive-summary(좌 KPI카드/우 설명모듈), closing 역할 배치를 추가한다.
-2. restyle_deck.py(기존 파일 편집)를 layouts.json 기반 레이아웃 배치 수준으로 확장한다.
-3. 실제 PPTX 회귀 픽스처로 인수 MVP의 차트·SmartArt 경고와 손실 보고를 보강한다.
-4. CI 가이드를 확보하면 로고 보호영역과 공식 색상 수치만 별도 재검수한다.
-5. render_slides.py 출력을 입력으로 받는 quality_check.py(구조 QA)와 visual_check.py(시각 QA)를 구현하고, 콘텐츠 QA → 구조 QA → 시각 QA 3단계 파이프라인을 완성한다.
-6. contact sheet 생성과 PowerPoint 우선 렌더 경로를 추가한다.
+1. build_deck.py에 closing 역할 배치를 추가한다(strategic-kpi/executive-summary는 완료).
+2. 실제(하나증권 소속이 아닌) 외부 PPTX 샘플로 '첨부 → 에이전트가 역할·columns 판단 → build_deck.py 실행' 종단간 흐름을 한 번 실제로 돌려 SKILL.md에 적어둔 자동 절차가 실제로 동작하는지 검증한다.
+3. 표 헤더·strategic-kpi 값·executive-summary 카드 제목의 합성 볼드(b="1")를 실제 하나2.0 굵기 폰트 파일로 바꾼다 — 어떤 굵기를 쓸지는 ci-typography.json의 pt 위계와 맞춰 판단한다(general-ppt-design-principles.md 반영 계획 2번).
+4. MARGIN(현재 0.5in≈1.27cm)을 일반 권장치(1.5cm)에 맞춰 조정할지 검토한다 — 변경 범위가 넓어 신중히 접근(general-ppt-design-principles.md 반영 계획 3번).
+5. 참고 자료에서 아이콘·삽화 그래픽 에셋을 뽑아 재사용 라이브러리로 등록하고 build_deck.py에 <p:pic> 삽입 기능을 추가할지 검토한다(비트맵이라 크기·색 고정 위험 — 벡터 장식으로 대체 가능한지 먼저 확인).
+6. cover의 로고 배지(우상단 흰 알약형)·로고 조합(하단 흰 띠) 배치 좌표를 확보해 심볼마크를 실제로 그린다(보호영역 확보 후).
+7. restyle_deck.py(기존 파일 편집)를 layouts.json 기반 레이아웃 배치 수준으로 확장한다.
+8. 실제 PPTX 회귀 픽스처로 인수 MVP의 차트·SmartArt 경고와 손실 보고를 보강한다.
+9. 공식 CI 컬러 수치는 확보해 ci-colors.json으로 등록·검증했다(Hana Point Green 불일치는 사용자가 원본 문서 표기임을 확인해 해소). 로고 보호영역·최소 크기, Special 컬러 수치, Hana Ren 명칭, 서체 pt 범위는 사용자 요청으로 보류 중이며, 값이 제공되면 그때 brand.json에 병합하고 관련 테스트를 갱신한다.
+10. render_slides.py 출력을 입력으로 받는 quality_check.py(구조 QA)와 visual_check.py(시각 QA)를 구현하고, 콘텐츠 QA → 구조 QA → 시각 QA 3단계 파이프라인을 완성한다.
+11. contact sheet 생성과 PowerPoint 우선 렌더 경로를 추가한다.

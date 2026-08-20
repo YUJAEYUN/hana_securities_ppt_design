@@ -32,6 +32,24 @@
       "approved_at": "2026-08-14"
     },
     {
+      "id": "hana-securities-2025-profile",
+      "organization": "하나증권",
+      "kind": "company-profile-presentation",
+      "title": "하나증권 회사소개서 (2025 Hana Securities Profile)",
+      "local_path": "hana-securities/2025_Hana_Securities_Profile.pdf",
+      "pages": 28,
+      "source": "user-provided",
+      "source_note": "사용자가 처음에 외부 URL(grant-documents.thevc.kr)을 안내했으나 이 세션의 아웃바운드 egress 정책이 해당 도메인을 차단해 다운로드하지 못했다. 이후 사용자가 같은 PDF 파일을 대화에 직접 첨부해 확보했다.",
+      "use": [
+        "official-ci-color-verification",
+        "symbol-mark-source"
+      ],
+      "style_status": "approved-by-user",
+      "approval_scope": "official-ci-color-and-symbol-mark-corroboration",
+      "approval_note": "사용자가 '이 디자인이 적용된 템플릿으로 만들어진 PPT'라며 제공. 표지·본문 배경색을 픽셀 단위로 추출해 사용자가 제공한 공식 CI 컬러 수치(Hana Green #009178 등)와 정확히 일치함을 확인했고, 이 문서에서 심볼마크 원본을 추출했다. 레이아웃·문체 수준의 전면적인 스타일 학습 근거로는 아직 채택하지 않았다(별도 검토 필요).",
+      "approved_at": "2026-08-20"
+    },
+    {
       "id": "hana-securities-2026-08-market-strategy",
       "organization": "하나증권 리서치센터",
       "kind": "research-presentation",
