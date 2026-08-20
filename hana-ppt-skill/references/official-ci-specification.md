@@ -30,16 +30,16 @@
 
 - 대부분(Hana Green, Hana Ren, Hana Dark Green)은 HEX와 RGB가 정확히 일치한다.
 - Hana Pale Green, Hana Light Green은 반올림 수준의 사소한 오차(1~4 단위)가 있다.
-- **Hana Point Green은 B값이 크게 어긋난다**: HEX #CEDC00을 환산하면 B=0인데 사용자가 준 RGB는 B=88이다. 단순 반올림으로 설명되지 않으므로 공식 CI 가이드북 원본과 대조가 필요하다. 어느 쪽이 맞는지 임의로 판단하지 않았다.
-- 스페셜 컬러(금·은)는 팬톤 코드만 제공됐다. 메탈릭 팬톤은 표준 RGB/HEX로 정확히 환산되지 않으므로 값을 만들어내지 않았다.
+- Hana Point Green은 HEX #CEDC00을 환산하면 B=0인데 RGB는 B=88로 계산상 어긋난다. 2026-08-20에 사용자가 RGB(B=88)는 원본 CI 문서에 그대로 적힌 값임을 확인해줬다 — 오기가 아니라 원본 표기 자체가 그렇다는 뜻이므로 두 값 모두 그대로 유지한다.
+- 스페셜 컬러(금·은)는 팬톤 코드만 제공됐다. 메탈릭 팬톤은 표준 RGB/HEX로 정확히 환산되지 않으므로 값을 만들어내지 않았다. 사용자 요청으로 추가 확보는 보류.
 
 ### 실제 배포 자료 대조 검증
 
-사용자가 처음 안내한 외부 URL(`grant-documents.thevc.kr`)은 이 세션의 아웃바운드 egress 정책이 차단해 다운로드하지 못했다(정책 차단이므로 우회하지 않음). 이후 사용자가 같은 PDF를 대화에 직접 첨부해 확보했다. `assets/reference-decks/hana-securities/2025_Hana_Securities_Profile.pdf`(source_id: `hana-securities-2025-profile`, "하나증권 회사소개서")로 등록하고 600dpi로 렌더링해 픽셀 단위로 대조했다.
+사용자가 처음 안내한 외부 URL(`grant-documents.thevc.kr`)은 이 세션의 아웃바운드 egress 정책이 차단해 다운로드하지 못했다(정책 차단이므로 우회하지 않음). 이를 사용자에게 알리자 같은 PDF를 대화에 직접 첨부해 확보했다. `assets/reference-decks/hana-securities/2025_Hana_Securities_Profile.pdf`(source_id: `hana-securities-2025-profile`, "하나증권 회사소개서")로 등록하고 600dpi로 렌더링해 픽셀 단위로 대조했다.
 
 - 표지 배경색을 크롭해 최빈 픽셀을 뽑으면 정확히 `RGB(0, 145, 120)` = `#009178`로, 사용자가 제공한 Hana Green 값과 완전히 일치한다.
 - 표지 하단의 로고 심볼마크에서 초록·빨강을 각각 추출하면 `RGB(0, 145, 120)`과 `RGB(220, 35, 30)`으로, Hana Green·Hana Ren(Red) 정본과 정확히 일치한다.
-- 경영이념 슬라이드(8p)의 헥사곤 장식에서 노란빛 초록 후광을 확인했는데, 이 부분은 여러 겹의 반투명 도형이 섞인 그라데이션이라 단일 원색으로 역산할 수 없었다. 따라서 Hana Point Green의 RGB/HEX 불일치는 이 방법으로 해소하지 못했다.
+- 경영이념 슬라이드(8p)의 헥사곤 장식에서 노란빛 초록 후광을 확인했는데, 이 부분은 여러 겹의 반투명 도형이 섞인 그라데이션이라 단일 원색으로 역산할 수 없어 이 방법만으로는 Hana Point Green을 검증하지 못했다. 다만 사용자가 RGB(B=88) 값이 원본 문서 그대로임을 직접 확인해줘서 별도로 해소됐다(위 값 검증 메모 참고).
 - Special 컬러(Gold/Light Gold/Silver)가 쓰인 사례는 이 문서에서 찾지 못했다.
 
 이 문서는 색상·로고 검증에는 썼지만 레이아웃·문체 수준의 스타일 학습 근거로는 아직 채택하지 않았다(`sources.json`의 `approval_scope: official-ci-color-and-symbol-mark-corroboration` 참고). 그 수준의 채택은 별도 검토가 필요하다.
@@ -68,11 +68,12 @@
 - 기존 `assets/logo/HanaSecurities_CI.ai`(벡터 원본)는 대체하지 않고 그대로 유지한다.
 - 보호영역(safe area), 최소 크기, 어두운 배경 위 사용 규칙(흰색 반전 버전 등)은 여전히 미확정이다. 그래서 `brand.json.logo.placement_status`의 `blocked-until-ci-guide` 상태는 유지한다.
 
-## 남은 작업
+## 보류된 항목
 
-1. Hana Point Green RGB/HEX 불일치를 공식 CI 가이드북 원본으로 재확인한다(픽셀 대조로는 해소 불가 — 그라데이션 레이어 때문).
-2. Hana Ren의 정확한 명칭('Red' 여부)을 확인한다.
-3. Medium/Condensed Medium의 권장 pt 범위, Heavy의 상한을 확보한다.
-4. 심볼마크의 보호영역, 최소 크기, 배경 위 사용 규칙(흰색 반전 버전 등)을 확보한다.
-5. Special 컬러(Gold/Light Gold/Silver)의 CMYK/RGB/HEX 수치를 확보한다.
-6. 위 항목이 모두 채워지면 `brand.json`을 이 공식 CI 정본 기준으로 갱신하고, `official_ci_specification` 관련 테스트를 포함해 `tests/test_repository.py`를 함께 손본다.
+2026-08-20 대화에서 사용자가 아래 항목은 추가로 캐묻지 말고 보류(pass)하도록 지시했다. 미해결 오류가 아니라 사용자 결정에 따른 보류이며, 값이 나중에 제공되면 그때 반영한다(`assets/ci-colors.json`의 `deferred_by_user` 참고).
+
+1. Hana Ren의 정확한 명칭('Red' 여부) 확인
+2. Special 컬러(Gold/Light Gold/Silver)의 CMYK/RGB/HEX 수치 확보
+3. Medium/Condensed Medium의 권장 pt 범위, Heavy의 상한 확보
+4. 심볼마크의 보호영역, 최소 크기, 배경 위 사용 규칙(흰색 반전 버전 등) 확보
+5. 위 항목과 무관하게, `brand.json`으로의 병합은 이 보류 상태가 유지되는 한 진행하지 않는다. 필요해지면 그때 `official_ci_specification` 관련 테스트를 포함해 `tests/test_repository.py`를 함께 손본다.

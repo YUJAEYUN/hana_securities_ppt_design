@@ -9,9 +9,10 @@
     "actor": "user",
     "record": "대화에서 하나 공식 CI 컬러 시스템의 팬톤·CMYK·RGB·HEX 수치를 직접 입력해 제공하고 등록을 승인. 이후 실제 하나증권 배포 자료(hana-securities-2025-profile)를 첨부해 심볼마크 원본과 색상 검증 근거를 추가로 제공.",
     "limitations_acknowledged": [
-      "심볼마크(로고)는 사용자가 제공한 실제 배포 자료에서 추출해 logo.symbol_mark/lockup_with_wordmark로 등록했지만, 보호영역·최소 크기·배경별 사용 규칙은 여전히 미확정이다.",
-      "Special 컬러(Gold/Light Gold/Silver)는 팬톤 코드만 제공되어 CMYK/RGB/HEX 필드를 비워 둔다. 금·은색 같은 메탈릭 팬톤은 표준 RGB/HEX로 정확히 환산되지 않으므로 임의로 계산하지 않는다.",
-      "일부 색상은 사용자가 제공한 HEX와 RGB 수치가 서로 정확히 일치하지 않는다(color별 consistency_check 참고). 어느 쪽이 맞는지 임의로 판단하지 않고 원본 그대로 기록했으니 공식 CI 가이드북 원본 대조가 필요하다."
+      "심볼마크(로고)는 사용자가 제공한 실제 배포 자료에서 추출해 logo.symbol_mark/lockup_with_wordmark로 등록했지만, 보호영역·최소 크기·배경별 사용 규칙은 미확정이며 사용자 요청으로 추가 확인을 보류한다(deferred_by_user 참고).",
+      "Special 컬러(Gold/Light Gold/Silver)는 팬톤 코드만 제공되어 CMYK/RGB/HEX 필드를 비워 둔다. 금·은색 같은 메탈릭 팬톤은 표준 RGB/HEX로 정확히 환산되지 않으므로 임의로 계산하지 않으며, 사용자 요청으로 추가 확보도 보류한다.",
+      "Hana Pale Green·Hana Light Green은 사용자가 제공한 HEX와 RGB가 반올림 수준(1~4 단위)으로 사소하게 어긋난다(color별 consistency_check 참고). 원본 표기 그대로 보존했다.",
+      "Hana Point Green의 RGB(B=88)와 HEX(#CEDC00→B0) 차이는 2026-08-20에 사용자가 원본 문서 그대로의 값임을 확인해 오기가 아닌 것으로 정리했다."
     ]
   },
   "provenance": {
@@ -33,7 +34,7 @@
       },
       "hana_red": {
         "display_name": "Hana Ren",
-        "display_name_note": "사용자가 'Hana Ren'으로 표기함. 'Hana Red'의 오기일 가능성이 있어 원문 표기를 그대로 보존하고 이 필드에 남긴다. 공식 가이드북 대조 필요.",
+        "display_name_note": "사용자가 'Hana Ren'으로 표기함. 'Hana Red'의 오기일 가능성이 있어 원문 표기를 그대로 보존하고 이 필드에 남긴다. 명칭 확인은 사용자 요청으로 보류(deferred_by_user 참고).",
         "role": "메인 컬러",
         "pantone": "3546 C",
         "cmyk": {"c": 10, "m": 100, "y": 100, "k": 0},
@@ -79,7 +80,7 @@
         "cmyk": {"c": 25, "m": 0, "y": 100, "k": 0},
         "rgb": {"r": 206, "g": 220, "b": 88},
         "hex": "#CEDC00",
-        "consistency_check": "불일치(경고): HEX #CEDC00을 RGB로 환산하면 (206, 220, 0)이지만 사용자가 제공한 RGB는 B=88이다. 단순 반올림 오차 범위를 벗어나 원본 CI 가이드북 대조로 재확인이 필요하다. 임의로 어느 값을 정답으로 택하지 않았다."
+        "consistency_check": "HEX #CEDC00을 RGB로 환산하면 (206, 220, 0)으로 B값만 계산상 어긋나지만, 사용자가 RGB B=88이 원본 CI 문서에 그대로 기재된 값임을 2026-08-20에 재확인했다. 두 값 모두 공식 문서 표기 그대로이며 오기로 보지 않는다."
       }
     },
     "special": {
@@ -117,8 +118,17 @@
     "method": "사용자가 제공한 실제 하나증권 배포 자료(reference-decks/hana-securities/2025_Hana_Securities_Profile.pdf, source_id=hana-securities-2025-profile)를 PDF 렌더링 후 픽셀 단위로 대조",
     "result": "표지 배경색이 정확히 RGB(0,145,120)=#009178로 렌더링되어 hana_green 값과 완전히 일치함을 확인했다. 로고 심볼마크의 초록·빨강 색상도 각각 hana_green(#009178), hana_red(#DC231E) 정본과 정확히 일치했다.",
     "not_yet_verified": [
-      "hana_point_green의 RGB/HEX 불일치는 이 문서의 그라데이션·투명도 레이어 때문에 픽셀 대조로 해소하지 못했다(여러 겹의 반투명 도형이 섞여 있어 단일 원색으로 역산이 불가능). 공식 CI 가이드북 원본 대조가 여전히 필요하다.",
       "Special 컬러(Gold/Light Gold/Silver)는 이 문서에서 사용된 사례를 찾지 못해 검증하지 못했다."
+    ]
+  },
+  "deferred_by_user": {
+    "record": "2026-08-20 대화에서 사용자가 아래 항목은 추가로 캐묻지 말고 보류(pass)하도록 지시했다. 오류로 보지 않으며, 사용자가 다시 값을 제공하면 그때 반영한다.",
+    "items": [
+      "Hana Ren의 정확한 명칭('Red' 오기 여부) 확인",
+      "Special 컬러(Gold/Light Gold/Silver) CMYK/RGB/HEX 수치 확보",
+      "하나2.0 Medium/Condensed Medium의 권장 pt 범위, Heavy의 상한 확보",
+      "심볼마크 보호영역·최소 크기·배경별 사용 규칙 확보",
+      "brand.json 운영 정본에의 병합"
     ]
   },
   "logo": {
