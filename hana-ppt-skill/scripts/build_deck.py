@@ -4,11 +4,14 @@
 deck_spec.json은 텍스트·표 인벤토리만 담고 있어(위치·이미지 데이터 없음) 원본을 그대로
 재현할 수 없다. `--layouts`/`--layout-plan`을 주지 않으면 슬라이드마다 제목 + (불릿 또는 표)
 하나짜리 기본(data-body) 레이아웃만 만든다. `--layout-plan`으로 슬라이드별 역할(승인된
-layouts.json의 패턴 키)을 지정하면 cover/section-divider/disclaimer 역할별로 다르게 배치한다.
-역할 판단(어떤 슬라이드가 표지인지 등)은 에이전트/사람이 하고, 이 스크립트는 그 판단을
-기계적으로 실행만 한다 — hana-refine의 edits.json과 같은 원칙이다. strategic-kpi,
-executive-summary, closing 역할별 배치와 장식 요소(적색 선, 원형 모티프)는 아직 없다.
-이미지·그래픽·그룹 요소는 재현하지 않고 build 결과의 warnings로 보고한다.
+layouts.json의 패턴 키)을 지정하면 cover/section-divider/disclaimer/data-body 역할별로
+다르게 배치하고, layouts.json 패턴에 이미 승인돼 있던 장식 요소(cover의 적색 강조선·초록
+원형 모티프, section-divider의 옅은 원형 모티프, data-body의 제목 밑줄)를 브랜드 색상으로
+그린다. 역할 판단(어떤 슬라이드가 표지인지 등)은 에이전트/사람이 하고, 이 스크립트는 그
+판단을 기계적으로 실행만 한다 — hana-refine의 edits.json과 같은 원칙이다. strategic-kpi,
+executive-summary, closing 역할별 배치는 아직 없다. 로고는 보호영역이 미확정이라
+(brand.json.logo.placement_status) 자동 배치하지 않고 경고로만 보고한다. 이미지·그래픽·
+그룹 요소도 재현하지 않고 build 결과의 warnings로 보고한다.
 """
 
 from __future__ import annotations
@@ -243,6 +246,74 @@ def _content_placeholder(inner_xml: str) -> str:
     )
 
 
+def _role_hex(brand: dict, role: str) -> str | None:
+    color = brand.get("colors", {}).get(role)
+    return color["value"].lstrip("#").upper() if color else None
+
+
+def _decoration_shape(
+    shape_id: int,
+    name: str,
+    prst: str,
+    x: int,
+    y: int,
+    cx: int,
+    cy: int,
+    hex_color: str,
+    *,
+    alpha: int | None = None,
+) -> str:
+    """장식용 도형(<p:sp>) 하나를 그린다. 텍스트가 없는 순수 배경 장식이라 spTree에서
+    제목·본문보다 먼저 와야 뒤에 깔린다(문서 순서 = 쌓임 순서)."""
+    alpha_xml = f'<a:alpha val="{alpha}"/>' if alpha is not None else ""
+    return (
+        f'<p:sp><p:nvSpPr><p:cNvPr id="{shape_id}" name="{name}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>'
+        f'<p:spPr><a:xfrm><a:off x="{x}" y="{y}"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
+        f'<a:prstGeom prst="{prst}"><a:avLst/></a:prstGeom>'
+        f'<a:solidFill><a:srgbClr val="{hex_color}">{alpha_xml}</a:srgbClr></a:solidFill>'
+        "<a:ln><a:noFill/></a:ln></p:spPr>"
+        "<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>"
+    )
+
+
+def _decorations_for_role(role: str, brand: dict, cx: int, cy: int, body_cx: int) -> tuple[str, list[str]]:
+    """layouts.json의 승인된 패턴에 이미 있던 장식 요소(적색 강조선, 원형 모티프, 제목
+    밑줄)를 brand.json 색상 역할로 그린다. 로고처럼 보호영역이 없는 요소는 그리지 않고
+    경고로만 남긴다(brand.json.logo.policy와 동일한 원칙)."""
+    shapes: list[str] = []
+    warnings: list[str] = []
+    shape_id = 90
+
+    def add(prst: str, name: str, x: int, y: int, w: int, h: int, role_name: str, *, alpha: int | None = None) -> None:
+        nonlocal shape_id
+        hex_color = _role_hex(brand, role_name)
+        if hex_color is None:
+            return
+        shapes.append(_decoration_shape(shape_id, name, prst, x, y, w, h, hex_color, alpha=alpha))
+        shape_id += 1
+
+    if role == "cover":
+        add("rect", "Decoration Accent Rule", MARGIN, MARGIN + TITLE_HEIGHT, 2400000, 45720, "alert_red")
+        add(
+            "ellipse",
+            "Decoration Circle Motif",
+            cx - 1800000,
+            cy - 1800000,
+            3200000,
+            3200000,
+            "primary_green",
+            alpha=20000,
+        )
+        warnings.append("표지 로고는 보호영역 미확정으로 자동 배치하지 않음(brand.json.logo.placement_status)")
+    elif role == "section-divider":
+        size = 5200000
+        add("ellipse", "Decoration Circle Motif", (cx - size) // 2, (cy - size) // 2, size, size, "pale_mint")
+    elif role == "data-body":
+        add("rect", "Decoration Divider Rule", MARGIN, MARGIN + TITLE_HEIGHT, body_cx, 25400, "pale_mint")
+
+    return "".join(shapes), warnings
+
+
 def _title_shape(title: str, *, align: str | None = None) -> str:
     return (
         '<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/>'
@@ -335,7 +406,9 @@ def _render_data_body(extra_texts: list[str], table_rows: list[list[str]] | None
     return _content_placeholder(_bullets_body(extra_texts)), []
 
 
-def _render_slide(role: str, slide: dict, body_cx: int, body_cy: int) -> tuple[str, list[str]]:
+def _render_slide(
+    role: str, slide: dict, brand: dict, cx: int, cy: int, body_cx: int, body_cy: int
+) -> tuple[str, list[str]]:
     title, extra_texts, table_rows, warnings = _parse_slide(slide)
     if role == "cover":
         body_xml, role_warnings = _render_cover(extra_texts)
@@ -346,6 +419,8 @@ def _render_slide(role: str, slide: dict, body_cx: int, body_cy: int) -> tuple[s
     else:
         body_xml, role_warnings = _render_data_body(extra_texts, table_rows, body_cx, body_cy)
     warnings.extend(role_warnings)
+    decoration_xml, decoration_warnings = _decorations_for_role(role, brand, cx, cy, body_cx)
+    warnings.extend(decoration_warnings)
     title_xml = _title_shape(title, align=ROLE_ALIGN.get(role))
     slide_xml = (
         XML_HEADER
@@ -354,7 +429,7 @@ def _render_slide(role: str, slide: dict, body_cx: int, body_cy: int) -> tuple[s
         'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
         '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
         "<p:grpSpPr/>"
-        f"{title_xml}{body_xml}"
+        f"{decoration_xml}{title_xml}{body_xml}"
         "</p:spTree></p:cSld></p:sld>"
     )
     return slide_xml, [f"슬라이드 {slide['number']}: {warning}" for warning in warnings]
@@ -437,7 +512,7 @@ def build(deck_spec: dict, brand: dict, layout_plan: dict[int, str] | None = Non
     warnings: list[str] = []
     for slide in slides:
         role = layout_plan.get(slide["number"], "data-body")
-        slide_xml, slide_warnings = _render_slide(role, slide, body_cx, body_cy)
+        slide_xml, slide_warnings = _render_slide(role, slide, brand, cx, cy, body_cx, body_cy)
         warnings.extend(slide_warnings)
         parts[f"ppt/slides/slide{slide['number']}.xml"] = slide_xml.encode("utf-8")
         parts[f"ppt/slides/_rels/slide{slide['number']}.xml.rels"] = SLIDE_RELS_TEMPLATE.encode("utf-8")

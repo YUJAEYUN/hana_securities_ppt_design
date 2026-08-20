@@ -2,7 +2,7 @@
   "schema_version": 1,
   "updated_at": "2026-08-20",
   "current_phase": "brand-voice-layout-profiles-approved",
-  "summary": "로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json, voice.json, layouts.json을 모두 확정했다. 하나증권 공식 CI·공식 문체·공식 레이아웃으로 주장하지 않는다. PPT 처리 계층을 엔진(범용 PPTX 조작)과 규칙(하나증권 브랜드·문체·레이아웃) 두 겹으로 분리하기로 하고, render_slides.py에 이어 restyle_deck.py(restyle-only + hana-refine, 텍스트 런 수준)와 build_deck.py(deck_spec.json에서 새 PPTX 생성)를 추가했다. 2026-08-18에 layouts.candidate.json의 6개 패턴을 사람이 전체 승인해 layouts.json으로 승격했고, build_deck.py에 --layouts/--layout-plan을 받아 cover/section-divider/disclaimer 역할별로 배치하는 1차 구현을 추가했다(strategic-kpi/executive-summary/closing과 장식 요소는 아직 없음). restyle_deck.py(기존 파일 편집)의 레이아웃 수준 재구성은 아직 시작 전이고, 구조/시각 품질 검사 구현도 남아 있다. 2026-08-20에 사용자가 하나 공식 CI 컬러 시스템과 하나2.0 서체 사용 규정 수치를 직접 제공해 ci-colors.json/ci-typography.json(둘 다 official_ci_specification: true)으로 등록했다. 처음 안내한 외부 URL은 이 세션의 egress 정책이 차단해(우회하지 않음) 사용자가 같은 PDF(하나증권 회사소개서, 2025 Hana Securities Profile)를 직접 첨부했고, reference-decks/hana-securities에 등록해 표지 배경색·로고 색상을 픽셀 단위로 대조한 결과 Hana Green/Hana Ren 수치와 정확히 일치함을 확인했다. 같은 문서에서 심볼마크(투명 배경 PNG, 심볼 단독/워드마크 포함 두 종)를 추출해 등록했다. Hana Point Green의 RGB(B=88)/HEX(#CEDC00) 불일치는 픽셀 대조로는 해소하지 못했지만, 사용자가 원본 CI 문서에 그대로 적힌 값임을 직접 확인해줘 오기가 아닌 것으로 정리했다. Hana Ren 명칭 확인, Special 컬러 수치, 서체 pt 범위 보완, 로고 보호영역 확보, brand.json 병합은 사용자 요청으로 보류(ci-colors.json의 deferred_by_user 참고)했다.",
+  "summary": "로컬 HFG IR 2건을 사용자 승인 운영 기준으로 삼아 출처·한계를 명시한 brand.json, voice.json, layouts.json을 모두 확정했다. 하나증권 공식 CI·공식 문체·공식 레이아웃으로 주장하지 않는다. PPT 처리 계층을 엔진(범용 PPTX 조작)과 규칙(하나증권 브랜드·문체·레이아웃) 두 겹으로 분리하기로 하고, render_slides.py에 이어 restyle_deck.py(restyle-only + hana-refine, 텍스트 런 수준)와 build_deck.py(deck_spec.json에서 새 PPTX 생성)를 추가했다. 2026-08-18에 layouts.candidate.json의 6개 패턴을 사람이 전체 승인해 layouts.json으로 승격했고, build_deck.py에 --layouts/--layout-plan을 받아 cover/section-divider/disclaimer 역할별로 배치하는 1차 구현을 추가했다(strategic-kpi/executive-summary/closing과 장식 요소는 아직 없음). restyle_deck.py(기존 파일 편집)의 레이아웃 수준 재구성은 아직 시작 전이고, 구조/시각 품질 검사 구현도 남아 있다. 2026-08-20에 사용자가 하나 공식 CI 컬러 시스템과 하나2.0 서체 사용 규정 수치를 직접 제공해 ci-colors.json/ci-typography.json(둘 다 official_ci_specification: true)으로 등록했다. 처음 안내한 외부 URL은 이 세션의 egress 정책이 차단해(우회하지 않음) 사용자가 같은 PDF(하나증권 회사소개서, 2025 Hana Securities Profile)를 직접 첨부했고, reference-decks/hana-securities에 등록해 표지 배경색·로고 색상을 픽셀 단위로 대조한 결과 Hana Green/Hana Ren 수치와 정확히 일치함을 확인했다. 같은 문서에서 심볼마크(투명 배경 PNG, 심볼 단독/워드마크 포함 두 종)를 추출해 등록했다. Hana Point Green의 RGB(B=88)/HEX(#CEDC00) 불일치는 픽셀 대조로는 해소하지 못했지만, 사용자가 원본 CI 문서에 그대로 적힌 값임을 직접 확인해줘 오기가 아닌 것으로 정리했다. Hana Ren 명칭 확인, Special 컬러 수치, 서체 pt 범위 보완, 로고 보호영역 확보, brand.json 병합은 사용자 요청으로 보류(ci-colors.json의 deferred_by_user 참고)했다. 이어서 사용자가 build_deck.py 산출물이 텍스트·단색 테마 위주라 밋밋하다고 지적해, layouts.json 패턴에 이미 승인돼 있었지만 그려지지 않던 장식 요소(cover의 적색 강조선·초록 원형 모티프, section-divider의 옅은 원형 모티프, data-body의 제목 밑줄)를 OOXML 프리셋 도형으로 구현했다. 로고는 보호영역 미확정 정책을 그대로 지켜 자동 배치하지 않고 경고만 남긴다. 참고 자료에서 아이콘 등을 뽑아 재사용 이미지 라이브러리로 삽입하는 기능은 크기·색 고정 위험이 있어 이번에는 보류하고 로드맵 항목으로만 남겼다.",
   "phases": [
     {
       "id": "requirements",
@@ -90,7 +90,8 @@
         "tests/test_repository.py"
       ],
       "missing": [
-        "build_deck.py의 strategic-kpi/executive-summary/closing 역할 배치와 장식 요소(적색 선, 원형 모티프)",
+        "build_deck.py의 strategic-kpi/executive-summary/closing 역할 배치",
+        "참고 자료에서 아이콘·삽화 같은 재사용 그래픽 에셋을 뽑아 라이브러리로 등록하고 <p:pic>으로 삽입하는 기능",
         "restyle_deck.py(기존 파일 편집)의 레이아웃 배치 수준 재구성 — 아직 전혀 없음",
         "build_deck.py의 이미지·그래픽·SmartArt 재현",
         "차트·SmartArt 상세 인수",
@@ -137,7 +138,8 @@
     "warning": "로컬 HFG IR 2건은 사용자 승인된 운영 기준이지만 하나증권 공식 IR 또는 공식 CI 근거는 아니다. 제외된 리서치 자료는 계속 학습에서 제외한다."
   },
   "next_actions": [
-    "build_deck.py에 strategic-kpi(원형 KPI 카드), executive-summary(좌 KPI카드/우 설명모듈), closing 역할 배치를 추가한다.",
+    "build_deck.py에 strategic-kpi(원형 KPI 카드), executive-summary(좌 KPI카드/우 설명모듈), closing 역할 배치를 추가한다(이번에 그린 원형 모티프 도형 헬퍼를 재사용할 수 있다).",
+    "참고 자료에서 아이콘·삽화 그래픽 에셋을 뽑아 재사용 라이브러리로 등록하고 build_deck.py에 <p:pic> 삽입 기능을 추가할지 검토한다(비트맵이라 크기·색 고정 위험 — 벡터 장식으로 대체 가능한지 먼저 확인).",
     "restyle_deck.py(기존 파일 편집)를 layouts.json 기반 레이아웃 배치 수준으로 확장한다.",
     "실제 PPTX 회귀 픽스처로 인수 MVP의 차트·SmartArt 경고와 손실 보고를 보강한다.",
     "공식 CI 컬러 수치는 확보해 ci-colors.json으로 등록·검증했다(Hana Point Green 불일치는 사용자가 원본 문서 표기임을 확인해 해소). 로고 보호영역·최소 크기, Special 컬러 수치, Hana Ren 명칭, 서체 pt 범위는 사용자 요청으로 보류 중이며, 값이 제공되면 그때 brand.json에 병합하고 관련 테스트를 갱신한다.",

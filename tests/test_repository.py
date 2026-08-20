@@ -520,8 +520,57 @@ class BuildDeckTests(unittest.TestCase):
         self.assertNotIn("금지된 본문 텍스트", divider)
         self.assertTrue(any("섹션 구분 레이아웃은 본문을 배치하지 않는다" in warning for warning in result["warnings"]))
 
+    def test_layout_plan_draws_layouts_json_decorations_per_role(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        brand = json.loads(brand_path.read_text(encoding="utf-8"))
+        alert_red = brand["colors"]["alert_red"]["value"].lstrip("#").upper()
+        primary_green = brand["colors"]["primary_green"]["value"].lstrip("#").upper()
+        pale_mint = brand["colors"]["pale_mint"]["value"].lstrip("#").upper()
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_role_deck_spec(directory)
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(
+                json.dumps({"1": "cover", "2": "section-divider", "3": "disclaimer"}), encoding="utf-8"
+            )
+            out_path = Path(directory) / "out.pptx"
+            result = BUILD.build_deck(
+                deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+            )
+            with zipfile.ZipFile(out_path) as archive:
+                cover = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+                divider = archive.read("ppt/slides/slide2.xml").decode("utf-8")
+                disclaimer = archive.read("ppt/slides/slide3.xml").decode("utf-8")
+
+        self.assertIn('<a:prstGeom prst="rect">', cover)
+        self.assertIn(f'<a:srgbClr val="{alert_red}">', cover)
+        self.assertIn('<a:prstGeom prst="ellipse">', cover)
+        self.assertIn(f'<a:srgbClr val="{primary_green}"><a:alpha val="20000"/></a:srgbClr>', cover)
+        self.assertTrue(
+            any("표지 로고는 보호영역 미확정으로 자동 배치하지 않음" in warning for warning in result["warnings"])
+        )
+
+        self.assertIn('<a:prstGeom prst="ellipse">', divider)
+        self.assertIn(f'<a:srgbClr val="{pale_mint}">', divider)
+
+        self.assertNotIn("Decoration", disclaimer)
         self.assertIn("본 자료는 정보 제공 목적으로만 작성되었습니다.", disclaimer)
         self.assertIn("투자 판단의 최종 책임은 투자자 본인에게 있습니다.", disclaimer)
+
+    def test_data_body_role_draws_divider_rule_under_title(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        brand = json.loads(brand_path.read_text(encoding="utf-8"))
+        pale_mint = brand["colors"]["pale_mint"]["value"].lstrip("#").upper()
+        with tempfile.TemporaryDirectory() as directory:
+            deck_spec_path = self._write_deck_spec(directory)
+            out_path = Path(directory) / "out.pptx"
+            BUILD.build_deck(deck_spec_path, brand_path, out_path)
+            with zipfile.ZipFile(out_path) as archive:
+                slide1 = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        self.assertIn('"Decoration Divider Rule"', slide1)
+        self.assertIn(f'<a:srgbClr val="{pale_mint}">', slide1)
+        # 장식 도형이 제목/본문보다 spTree에서 먼저 나와야 뒤에 깔린다.
+        self.assertLess(slide1.index("Decoration Divider Rule"), slide1.index('name="Title"'))
 
     def test_layout_plan_requires_both_layouts_and_plan(self):
         brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
