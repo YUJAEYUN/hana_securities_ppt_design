@@ -44,7 +44,7 @@ Codex가 어떤 자료를 읽고 어떤 기능을 실행할 수 있는지 결정
 
 ### 엔진과 규칙의 계층 분리
 
-`restyle_deck.py`/`build_deck.py`/`render_slides.py`/`quality_check.py`는 PPTX 조작·렌더링이라는 범용 문제를 다룹니다. 이 저장소가 실제로 더하는 가치는 하나증권 브랜드·문체 규칙(승인된 `brand.json`, `voice.json`)뿐입니다. 그래서 이 계층은 두 겹으로 설계합니다.
+`restyle_deck.py`/`build_deck.py`/`render_slides.py`/`quality_check.py`/`content_check.py`/`visual_check.py`는 PPTX 조작·렌더링·검사라는 범용 문제를 다룹니다. 이 저장소가 실제로 더하는 가치는 하나증권 브랜드·문체 규칙(승인된 `brand.json`, `voice.json`)뿐입니다. 그래서 이 계층은 두 겹으로 설계합니다.
 
 - **엔진 겹**: PPTX 인수, 슬라이드 복제·정리, 렌더링, 구조·파일 검증처럼 문서군에 무관한 범용 처리
 - **규칙 겹**: 승인된 브랜드·문체·레이아웃 근거만 엔진에 주입하는 하나증권 고유 로직
@@ -68,11 +68,11 @@ Anthropic이 공개한 pptx 스킬의 흐름(인수 → 편집 → 렌더 → 3�
 
 ## 4. 검증·배포 계층
 
-현재 자산·상태 검사와 LibreOffice 기반 렌더링은 동작하고 PPT 구조·시각 품질 검사는 구현 예정입니다.
+현재 자산·상태 검사와 LibreOffice 기반 렌더링이 동작하고, PPT 콘텐츠·구조·시각 품질 검사 3단계 모두 1차 구현이 끝났습니다.
 
 - 현재 동작: JSON 파싱, 문서 UTF-8·제어 문자, 자산 경로·크기·SHA-256, 기준 이미지, 제외 레퍼런스, 상태 문서 동기화, `render_slides.py`의 PPTX → PDF → 슬라이드별 이미지 변환과 render manifest 생성
-- 구현 예정: PPT 구조 검사(`quality_check.py`), 잘림·겹침·정렬 검사, 비전 평가(`visual_check.py`), 폰트 임베딩 검증
-- 계획된 3단계 품질 검사: ① 콘텐츠 QA(텍스트 누락·플레이스홀더) ② 구조 QA(스키마·관계·자산 정합성) ③ 시각 QA(렌더 이미지를 별도 검토 관점으로 확인). 렌더러나 도구가 없으면 결과를 `partial`로 표시하고 최종 성공으로 취급하지 않습니다.
+- 3단계 품질 검사(모두 1차 구현 완료): ① 콘텐츠 QA(`content_check.py`) — `text_units.py`로 뽑은 실제 텍스트를 deck_spec.json과 대조해 누락·플레이스홀더 잔존을 본다 ② 구조 QA(`quality_check.py`) — 렌더링 없이 zip 구조만 본다: `[Content_Types].xml`/`.rels` 정합성, 화면비, 슬라이드 수, 도형 경계·겹침 ③ 시각 QA(`visual_check.py`) — `layouts.json` 승인 요소를 슬라이드별 체크리스트로 정리하고 별도 세션이 [visual-qa-rubric.md](../hana-ppt-skill/references/visual-qa-rubric.md) 절차로 렌더 이미지를 판정한다(+Pillow 있으면 단색 배경 역할은 기계적 색상 대조)
+- 남은 항목: 잘림·정렬처럼 실제 렌더 없이는 알 수 없는 검사, 폰트 임베딩 검증, 이 개발 환경에서 막혀 있는 `soffice` 렌더로 인한 시각 QA 종단간 검증. 렌더러나 도구가 없으면 결과를 `partial`로 표시하고 최종 성공으로 취급하지 않습니다.
 - 원격 검사: `.github/workflows/repository-harness.yml`
 
 ## 정본 우선순위
