@@ -478,7 +478,7 @@ def _render_strategic_kpi(extra_texts: list[str], columns: int, brand: dict, cx:
         shapes.append(_text_box(shape_id, "Stat Label", x, top, col_width, 320000, _paragraph(label, color=label_hex, size=12)))
         shape_id += 1
         if rule_hex:
-            shapes.append(_decoration_shape(shape_id, "Stat Rule", "rect", x, top + 330000, col_width, 25400, rule_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Stat Rule", "rect", x, top + 330000, col_width, 25400, rule_hex))
             shape_id += 1
         shapes.append(
             _text_box(
@@ -514,11 +514,11 @@ def _render_executive_summary(extra_texts: list[str], columns: int, brand: dict,
         x = MARGIN + index * (col_width + gap)
         y = top
         if bar_hex:
-            shapes.append(_decoration_shape(shape_id, "Card Top Bar", "rect", x, y, col_width, bar_h, bar_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Card Top Bar", "rect", x, y, col_width, bar_h, bar_hex))
             shape_id += 1
         y += bar_h
         if header_hex:
-            shapes.append(_decoration_shape(shape_id, "Card Header", "rect", x, y, col_width, header_h, header_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Card Header", "rect", x, y, col_width, header_h, header_hex))
             shape_id += 1
         shapes.append(
             _text_box(
@@ -534,13 +534,13 @@ def _render_executive_summary(extra_texts: list[str], columns: int, brand: dict,
         shape_id += 1
         y += header_h
         if bar_hex:
-            shapes.append(_decoration_shape(shape_id, "Card Divider", "rect", x, y, col_width, rule_h, bar_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Card Divider", "rect", x, y, col_width, rule_h, bar_hex))
             shape_id += 1
         y += rule_h + 91440
         shapes.append(_text_box(shape_id, "Card Bullets", x, y, col_width, card_h - (y - top), _bullets_body(bullets)))
         shape_id += 1
         if bar_hex:
-            shapes.append(_decoration_shape(shape_id, "Card Bottom Rule", "rect", x, top + card_h, col_width, rule_h, bar_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Card Bottom Rule", "rect", x, top + card_h, col_width, rule_h, bar_hex))
             shape_id += 1
     return "".join(shapes), []
 

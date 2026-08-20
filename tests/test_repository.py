@@ -33,6 +33,7 @@ VERIFY_EVIDENCE = load_module("verify_evidence_preserved", SCRIPTS_DIR / "verify
 RESTYLE = load_module("restyle_deck", SCRIPTS_DIR / "restyle_deck.py")
 BUILD = load_module("build_deck", SCRIPTS_DIR / "build_deck.py")
 VISUAL_CHECK = load_module("visual_check", SCRIPTS_DIR / "visual_check.py")
+QUALITY_CHECK = load_module("quality_check", SCRIPTS_DIR / "quality_check.py")
 
 
 class DocumentValidationTests(unittest.TestCase):
@@ -694,8 +695,8 @@ class BuildDeckTests(unittest.TestCase):
             )
             with zipfile.ZipFile(out_path) as archive:
                 slide1 = archive.read("ppt/slides/slide1.xml").decode("utf-8")
-        self.assertIn('"Card Top Bar"', slide1)
-        self.assertIn('"Card Header"', slide1)
+        self.assertIn('"Decoration Card Top Bar"', slide1)
+        self.assertIn('"Decoration Card Header"', slide1)
         self.assertIn('<a:pPr algn="ctr"/>', slide1)
         self.assertIn("WM", slide1)
         self.assertIn("개인 또는 법인대상 금융상품 판매", slide1)
@@ -832,6 +833,180 @@ class VisualCheckTests(unittest.TestCase):
             reloaded = json.loads(out_path.read_text(encoding="utf-8"))
         self.assertEqual(packet, reloaded)
         self.assertEqual("disclaimer", packet["slides"][0]["role"])
+
+
+class QualityCheckTests(unittest.TestCase):
+    def test_check_content_types_flags_missing_override_target(self):
+        parts = {
+            "[Content_Types].xml": (
+                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                '<Override PartName="/ppt/presentation.xml" ContentType="x"/>'
+                '<Override PartName="/ppt/slides/slide1.xml" ContentType="x"/>'
+                "</Types>"
+            ).encode("utf-8"),
+            "ppt/presentation.xml": b"<x/>",
+        }
+        errors = QUALITY_CHECK.check_content_types(parts)
+        self.assertTrue(any("ppt/slides/slide1.xml" in error for error in errors))
+
+    def test_check_relationships_flags_dangling_target_and_allows_external(self):
+        parts = {
+            "ppt/_rels/presentation.xml.rels": (
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                '<Relationship Id="rId1" Type="x" Target="slides/slide1.xml"/>'
+                '<Relationship Id="rId2" Type="x" Target="https://example.com" TargetMode="External"/>'
+                "</Relationships>"
+            ).encode("utf-8"),
+        }
+        errors = QUALITY_CHECK.check_relationships(parts)
+        self.assertEqual(1, len(errors))
+        self.assertIn("slides/slide1.xml", errors[0])
+
+    def test_check_relationships_resolves_valid_target_without_touching_filesystem(self):
+        parts = {
+            "ppt/_rels/presentation.xml.rels": (
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                '<Relationship Id="rId1" Type="x" Target="slides/slide1.xml"/>'
+                "</Relationships>"
+            ).encode("utf-8"),
+            "ppt/slides/slide1.xml": b"<x/>",
+        }
+        self.assertEqual([], QUALITY_CHECK.check_relationships(parts))
+
+    def test_check_aspect_ratio_flags_mismatch(self):
+        parts = {
+            "ppt/presentation.xml": (
+                '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
+                '<p:sldSz cx="9144000" cy="6858000"/></p:presentation>'
+            ).encode("utf-8")
+        }
+        errors = QUALITY_CHECK.check_aspect_ratio(parts, {"canvas": {"aspect_ratio": 1.444}})
+        self.assertEqual(1, len(errors))
+
+    def test_check_slide_count_flags_mismatch(self):
+        parts = {"ppt/slides/slide1.xml": b"<x/>"}
+        errors = QUALITY_CHECK.check_slide_count(parts, {"slides": [1, 2]})
+        self.assertTrue(errors)
+
+    SLIDE_XML_TEMPLATE = (
+        '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        "<p:cSld><p:spTree>{shapes}</p:spTree></p:cSld></p:sld>"
+    )
+
+    @staticmethod
+    def _shape(name: str, x: int, y: int, cx: int, cy: int) -> str:
+        return (
+            f'<p:sp><p:nvSpPr><p:cNvPr id="1" name="{name}"/></p:nvSpPr>'
+            f'<p:spPr><a:xfrm><a:off x="{x}" y="{y}"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm></p:spPr></p:sp>'
+        )
+
+    def test_check_shape_bounds_flags_out_of_bounds_and_overlap_but_ignores_decorations(self):
+        cx, cy = 9144000, 6858000
+        shapes = (
+            self._shape("Off Slide Text", -1000, 0, 500000, 500000)
+            + self._shape("Overlap A", 0, 0, 2000000, 2000000)
+            + self._shape("Overlap B", 100000, 100000, 2000000, 2000000)
+            + self._shape("Decoration Full Background", -500000, -500000, cx + 1000000, cy + 1000000)
+        )
+        parts = {
+            "ppt/presentation.xml": (
+                f'<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
+                f'<p:sldSz cx="{cx}" cy="{cy}"/></p:presentation>'
+            ).encode("utf-8"),
+            "ppt/slides/slide1.xml": self.SLIDE_XML_TEMPLATE.format(shapes=shapes).encode("utf-8"),
+        }
+        errors = QUALITY_CHECK.check_shape_bounds(parts)
+        self.assertTrue(any("Off Slide Text" in e and "경계를 벗어남" in e for e in errors))
+        self.assertTrue(any("Overlap A" in e and "Overlap B" in e for e in errors))
+        self.assertFalse(any("Decoration" in e for e in errors))
+
+    def test_run_passes_cleanly_on_build_deck_output_with_card_and_stat_roles(self):
+        """실행 시 executive-summary/strategic-kpi 장식 도형 이름이 Decoration 접두사를
+        빠뜨리면 이 테스트가 겹침 오탐으로 실패한다(회귀 방지)."""
+        deck_spec = {
+            "schema_version": 1,
+            "source": {"path": "x.pptx", "sha256": "0" * 64},
+            "slides": [
+                {
+                    "number": 1,
+                    "part": "ppt/slides/slide1.xml",
+                    "elements": [
+                        {"kind": "shape", "name": "Title", "text": "국내·외 네트워크"},
+                        {"kind": "shape", "name": "L1", "text": "전국 영업점 수"},
+                        {"kind": "shape", "name": "V1", "text": "54개"},
+                    ],
+                    "warnings": [],
+                },
+                {
+                    "number": 2,
+                    "part": "ppt/slides/slide2.xml",
+                    "elements": [
+                        {"kind": "shape", "name": "Title", "text": "주요 사업영역"},
+                        {"kind": "shape", "name": "H1", "text": "WM"},
+                        {"kind": "shape", "name": "B1", "text": "개인대상 금융상품 판매"},
+                    ],
+                    "warnings": [],
+                },
+            ],
+            "warnings": [],
+        }
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            spec_path = Path(directory) / "deck_spec.json"
+            spec_path.write_text(json.dumps(deck_spec, ensure_ascii=False), encoding="utf-8")
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(
+                json.dumps({"1": {"role": "strategic-kpi", "columns": 1}, "2": {"role": "executive-summary", "columns": 1}}),
+                encoding="utf-8",
+            )
+            out_path = Path(directory) / "out.pptx"
+            BUILD.build_deck(
+                spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
+            )
+            result = QUALITY_CHECK.run(out_path, brand_path=brand_path, deck_spec_path=spec_path)
+        self.assertEqual("pass", result["status"])
+        self.assertEqual([], result["errors"])
+
+    def test_run_flags_slide_count_mismatch_against_deck_spec(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        with tempfile.TemporaryDirectory() as directory:
+            spec_path = Path(directory) / "deck_spec.json"
+            spec_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "source": {"path": "x.pptx", "sha256": "0" * 64},
+                        "slides": [
+                            {"number": 1, "part": "ppt/slides/slide1.xml", "elements": [], "warnings": []},
+                            {"number": 2, "part": "ppt/slides/slide2.xml", "elements": [], "warnings": []},
+                        ],
+                        "warnings": [],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            out_path = Path(directory) / "out.pptx"
+            # deck_spec에는 슬라이드가 2개지만 build_deck.py에는 1개짜리만 넘긴다.
+            one_slide_spec_path = Path(directory) / "one_slide.json"
+            one_slide_spec_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "source": {"path": "x.pptx", "sha256": "0" * 64},
+                        "slides": [{"number": 1, "part": "ppt/slides/slide1.xml", "elements": [], "warnings": []}],
+                        "warnings": [],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            BUILD.build_deck(one_slide_spec_path, brand_path, out_path)
+            result = QUALITY_CHECK.run(out_path, deck_spec_path=spec_path)
+        self.assertEqual("fail", result["status"])
+        self.assertTrue(any("슬라이드 수 불일치" in e for e in result["errors"]))
 
 
 if __name__ == "__main__":
