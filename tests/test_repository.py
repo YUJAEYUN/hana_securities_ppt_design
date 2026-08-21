@@ -32,6 +32,7 @@ TEXT_UNITS = load_module("text_units", SCRIPTS_DIR / "text_units.py")
 VERIFY_EVIDENCE = load_module("verify_evidence_preserved", SCRIPTS_DIR / "verify_evidence_preserved.py")
 RESTYLE = load_module("restyle_deck", SCRIPTS_DIR / "restyle_deck.py")
 BUILD = load_module("build_deck", SCRIPTS_DIR / "build_deck.py")
+VISUAL_CHECK = load_module("visual_check", SCRIPTS_DIR / "visual_check.py")
 
 
 class DocumentValidationTests(unittest.TestCase):
@@ -749,6 +750,88 @@ class BuildDeckTests(unittest.TestCase):
                 BUILD.build_deck(
                     deck_spec_path, brand_path, out_path, layouts_path=layouts_path, layout_plan_path=plan_path
                 )
+
+
+class VisualCheckTests(unittest.TestCase):
+    def _brand(self):
+        return json.loads((ROOT / "hana-ppt-skill" / "assets" / "brand.json").read_text(encoding="utf-8"))
+
+    def _layouts(self):
+        return json.loads((ROOT / "hana-ppt-skill" / "assets" / "layouts.json").read_text(encoding="utf-8"))
+
+    def test_checklist_resolves_element_colors_to_brand_hex(self):
+        brand, layouts = self._brand(), self._layouts()
+        checklist, confidence, note = VISUAL_CHECK.checklist_for_role("cover", layouts, brand)
+        self.assertTrue(any("primary_green(009070)" in item for item in checklist))
+        self.assertEqual("hana-securities-evidenced", confidence)
+        self.assertTrue(note)
+
+    def test_checklist_flags_undefined_role(self):
+        brand, layouts = self._brand(), self._layouts()
+        checklist, confidence, _ = VISUAL_CHECK.checklist_for_role("not-a-real-role", layouts, brand)
+        self.assertEqual("undefined-role", confidence)
+        self.assertTrue(checklist)
+
+    def test_review_packet_defaults_missing_slides_to_data_body(self):
+        brand, layouts = self._brand(), self._layouts()
+        manifest = {"slides": [{"number": 1, "path": "/x/1.jpg"}]}
+        packet = VISUAL_CHECK.build_review_packet(manifest, {}, layouts, brand)
+        self.assertEqual("data-body", packet["slides"][0]["role"])
+        self.assertEqual(brand["colors"]["primary_green"]["value"], packet["brand_colors"]["primary_green"])
+
+    def test_review_packet_includes_prohibited_content_for_section_divider(self):
+        brand, layouts = self._brand(), self._layouts()
+        manifest = {"slides": [{"number": 1, "path": "/x/1.jpg"}]}
+        packet = VISUAL_CHECK.build_review_packet(manifest, {1: {"role": "section-divider"}}, layouts, brand)
+        self.assertTrue(any("금지:" in item for item in packet["slides"][0]["checklist"]))
+
+    @unittest.skipUnless(VISUAL_CHECK.PIL_AVAILABLE, "Pillow가 설치되지 않음")
+    def test_mechanical_background_check_matches_solid_primary_green_image(self):
+        from PIL import Image
+
+        brand, layouts = self._brand(), self._layouts()
+        with tempfile.TemporaryDirectory() as directory:
+            image_path = Path(directory) / "cover.jpg"
+            hex_value = brand["colors"]["primary_green"]["value"].lstrip("#")
+            rgb = tuple(int(hex_value[i : i + 2], 16) for i in (0, 2, 4))
+            Image.new("RGB", (200, 150), rgb).save(image_path)
+            manifest = {"slides": [{"number": 1, "path": str(image_path)}]}
+            packet = VISUAL_CHECK.build_review_packet(manifest, {1: {"role": "cover"}}, layouts, brand)
+        check = packet["slides"][0]["mechanical_background_check"]
+        self.assertEqual("match", check["verdict"])
+        self.assertLessEqual(check["distance"], 12)
+
+    @unittest.skipUnless(VISUAL_CHECK.PIL_AVAILABLE, "Pillow가 설치되지 않음")
+    def test_mechanical_background_check_flags_wrong_color(self):
+        from PIL import Image
+
+        brand, layouts = self._brand(), self._layouts()
+        with tempfile.TemporaryDirectory() as directory:
+            image_path = Path(directory) / "cover.jpg"
+            Image.new("RGB", (200, 150), (255, 0, 0)).save(image_path)  # 완전히 다른 색
+            manifest = {"slides": [{"number": 1, "path": str(image_path)}]}
+            packet = VISUAL_CHECK.build_review_packet(manifest, {1: {"role": "cover"}}, layouts, brand)
+        check = packet["slides"][0]["mechanical_background_check"]
+        self.assertEqual("mismatch", check["verdict"])
+
+    def test_build_check_writes_packet_file(self):
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        layouts_path = ROOT / "hana-ppt-skill" / "assets" / "layouts.json"
+        with tempfile.TemporaryDirectory() as directory:
+            manifest_path = Path(directory) / "render_manifest.json"
+            manifest_path.write_text(
+                json.dumps({"slides": [{"number": 1, "path": "/x/1.jpg"}]}), encoding="utf-8"
+            )
+            plan_path = Path(directory) / "plan.json"
+            plan_path.write_text(json.dumps({"1": "disclaimer"}), encoding="utf-8")
+            out_path = Path(directory) / "packet.json"
+            packet = VISUAL_CHECK.build_check(
+                manifest_path, layouts_path, brand_path, out_path, layout_plan_path=plan_path
+            )
+            self.assertTrue(out_path.is_file())
+            reloaded = json.loads(out_path.read_text(encoding="utf-8"))
+        self.assertEqual(packet, reloaded)
+        self.assertEqual("disclaimer", packet["slides"][0]["role"])
 
 
 if __name__ == "__main__":
