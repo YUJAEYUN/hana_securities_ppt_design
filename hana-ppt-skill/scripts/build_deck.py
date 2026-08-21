@@ -229,15 +229,30 @@ def _escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _run_pr(*, bold: bool = False, color: str | None = None, size: int | None = None) -> str:
+def _bold_family(brand: dict) -> str | None:
+    """강조(볼드) 텍스트에 쓸 실제 굵기 폰트 파일 이름을 brand.json에서 가져온다.
+    표 헤더·strategic-kpi 값·executive-summary 카드 제목처럼 제목 placeholder가 아닌
+    곳에서 굵게 강조할 때, b="1" 합성 볼드만 쓰지 않고 하나2.0의 실제 Bold 패밀리
+    (heading.families의 두 번째 항목, "하나2.0 B")로 바꿔 그린다 — 서체 파일마다 굵기별
+    획 구조가 다르게 디자인돼 있어 합성 볼드보다 실제 굵기 폰트가 더 또렷하다
+    (general-ppt-design-principles.md 3절 참고). 아직 병합되지 않은 ci-typography.json은
+    참조하지 않고 이미 승인된 brand.json 안에서만 고른다."""
+    families = brand.get("typography", {}).get("heading", {}).get("families", [])
+    if len(families) > 1:
+        return families[1]
+    return families[0] if families else None
+
+
+def _run_pr(*, bold: bool = False, color: str | None = None, size: int | None = None, typeface: str | None = None) -> str:
     """<a:rPr>를 만든다. size는 포인트(예: 12pt=1200 하는 OOXML 방식이 아니라 실제 pt 정수,
     내부에서 100배해 sz 속성으로 바꾼다)."""
-    if not (bold or color or size):
+    if not (bold or color or size or typeface):
         return ""
     attrs = ' b="1"' if bold else ""
     attrs += f' sz="{size * 100}"' if size else ""
     fill = f'<a:solidFill><a:srgbClr val="{color}"/></a:solidFill>' if color else ""
-    return f"<a:rPr{attrs}>{fill}</a:rPr>"
+    latin = f'<a:latin typeface="{typeface}"/>' if typeface else ""
+    return f"<a:rPr{attrs}>{fill}{latin}</a:rPr>"
 
 
 def _paragraph(
@@ -247,9 +262,10 @@ def _paragraph(
     color: str | None = None,
     bold: bool = False,
     size: int | None = None,
+    typeface: str | None = None,
 ) -> str:
     pPr = f'<a:pPr algn="{align}"/>' if align else ""
-    rPr = _run_pr(bold=bold, color=color, size=size)
+    rPr = _run_pr(bold=bold, color=color, size=size, typeface=typeface)
     return f"<a:p>{pPr}<a:r>{rPr}<a:t>{_escape(text)}</a:t></a:r></a:p>"
 
 
@@ -297,6 +313,18 @@ def _decoration_shape(
     )
 
 
+def _outline_box(shape_id: int, name: str, x: int, y: int, cx: int, cy: int, hex_color: str) -> str:
+    """채우지 않고 얇은 테두리만 그리는 상자. closing(28p)의 연락처 박스 근거."""
+    return (
+        f'<p:sp><p:nvSpPr><p:cNvPr id="{shape_id}" name="{name}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>'
+        f'<p:spPr><a:xfrm><a:off x="{x}" y="{y}"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
+        '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
+        "<a:noFill/>"
+        f'<a:ln><a:solidFill><a:srgbClr val="{hex_color}"/></a:solidFill></a:ln></p:spPr>'
+        "<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>"
+    )
+
+
 def _decorations_for_role(role: str, brand: dict, cx: int, cy: int, body_cx: int) -> tuple[str, list[str]]:
     """cover/section-divider/data-body 장식을 brand.json 색상 역할로 그린다.
 
@@ -318,7 +346,7 @@ def _decorations_for_role(role: str, brand: dict, cx: int, cy: int, body_cx: int
         shapes.append(_decoration_shape(shape_id, name, prst, x, y, w, h, hex_color, alpha=alpha))
         shape_id += 1
 
-    if role in {"cover", "section-divider"}:
+    if role in {"cover", "section-divider", "closing"}:
         add("rect", "Decoration Full Background", 0, 0, cx, cy, "primary_green")
         if role == "cover":
             warnings.append("표지 로고는 보호영역 미확정으로 자동 배치하지 않음(brand.json.logo.placement_status)")
@@ -336,11 +364,13 @@ def _title_shape(title: str, *, color: str | None = None) -> str:
     )
 
 
-def _table_cell(text: str, *, fill: str | None = None, color: str | None = None, bold: bool = False) -> str:
+def _table_cell(
+    text: str, *, fill: str | None = None, color: str | None = None, bold: bool = False, typeface: str | None = None
+) -> str:
     """표 셀 하나. 재무 현황(5p)의 헤더 진한 배경·흰 글씨, 부분합 줄무늬 배경을 근거로
     header/band 색을 brand.json 색상 역할로 채운다(layouts.json의 table_colors.header와
     같은 지정)."""
-    rPr = _run_pr(bold=bold, color=color)
+    rPr = _run_pr(bold=bold, color=color, typeface=typeface)
     tcPr = f'<a:tcPr><a:solidFill><a:srgbClr val="{fill}"/></a:solidFill></a:tcPr>' if fill else "<a:tcPr/>"
     return (
         f"<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r>{rPr}"
@@ -355,12 +385,14 @@ def _table_xml(rows: list[list[str]], cx: int, cy: int, brand: dict) -> str:
     grid_cols = "".join(f'<a:gridCol w="{column_width}"/>' for _ in range(column_count))
     header_hex = _role_hex(brand, "deep_teal")
     band_hex = _role_hex(brand, "pale_mint")
+    bold_family = _bold_family(brand)
     body_rows = []
     for row_index, row in enumerate(rows):
         is_header = row_index == 0
         fill = header_hex if is_header else (band_hex if row_index % 2 == 1 else None)
         color = "FFFFFF" if is_header else None
-        cells = "".join(_table_cell(cell, fill=fill, color=color, bold=is_header) for cell in row)
+        typeface = bold_family if is_header else None
+        cells = "".join(_table_cell(cell, fill=fill, color=color, bold=is_header, typeface=typeface) for cell in row)
         padding = "".join(
             _table_cell("", fill=fill) for _ in range(column_count - len(row))
         )
@@ -471,6 +503,7 @@ def _render_strategic_kpi(extra_texts: list[str], columns: int, brand: dict, cx:
     label_hex = _role_hex(brand, "deep_teal")
     value_hex = _role_hex(brand, "primary_green")
     rule_hex = _role_hex(brand, "pale_mint")
+    bold_family = _bold_family(brand)
     shapes: list[str] = []
     shape_id = 150
     for index, (label, value) in enumerate(groups):
@@ -478,7 +511,7 @@ def _render_strategic_kpi(extra_texts: list[str], columns: int, brand: dict, cx:
         shapes.append(_text_box(shape_id, "Stat Label", x, top, col_width, 320000, _paragraph(label, color=label_hex, size=12)))
         shape_id += 1
         if rule_hex:
-            shapes.append(_decoration_shape(shape_id, "Stat Rule", "rect", x, top + 330000, col_width, 25400, rule_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Stat Rule", "rect", x, top + 330000, col_width, 25400, rule_hex))
             shape_id += 1
         shapes.append(
             _text_box(
@@ -488,7 +521,7 @@ def _render_strategic_kpi(extra_texts: list[str], columns: int, brand: dict, cx:
                 top + 400000,
                 col_width,
                 700000,
-                _paragraph(value, color=value_hex, bold=True, size=32),
+                _paragraph(value, color=value_hex, bold=True, size=32, typeface=bold_family),
             )
         )
         shape_id += 1
@@ -505,6 +538,7 @@ def _render_executive_summary(extra_texts: list[str], columns: int, brand: dict,
     bar_hex = _role_hex(brand, "deep_teal")
     header_hex = _role_hex(brand, "pale_mint")
     heading_color = _role_hex(brand, "deep_teal")
+    bold_family = _bold_family(brand)
     bar_h, header_h, rule_h = 45720, 750000, 25400
     card_h = 4200000
     shapes: list[str] = []
@@ -514,11 +548,11 @@ def _render_executive_summary(extra_texts: list[str], columns: int, brand: dict,
         x = MARGIN + index * (col_width + gap)
         y = top
         if bar_hex:
-            shapes.append(_decoration_shape(shape_id, "Card Top Bar", "rect", x, y, col_width, bar_h, bar_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Card Top Bar", "rect", x, y, col_width, bar_h, bar_hex))
             shape_id += 1
         y += bar_h
         if header_hex:
-            shapes.append(_decoration_shape(shape_id, "Card Header", "rect", x, y, col_width, header_h, header_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Card Header", "rect", x, y, col_width, header_h, header_hex))
             shape_id += 1
         shapes.append(
             _text_box(
@@ -528,19 +562,19 @@ def _render_executive_summary(extra_texts: list[str], columns: int, brand: dict,
                 y,
                 col_width,
                 header_h,
-                _paragraph(heading, align="ctr", color=heading_color, bold=True, size=20),
+                _paragraph(heading, align="ctr", color=heading_color, bold=True, size=20, typeface=bold_family),
             )
         )
         shape_id += 1
         y += header_h
         if bar_hex:
-            shapes.append(_decoration_shape(shape_id, "Card Divider", "rect", x, y, col_width, rule_h, bar_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Card Divider", "rect", x, y, col_width, rule_h, bar_hex))
             shape_id += 1
         y += rule_h + 91440
         shapes.append(_text_box(shape_id, "Card Bullets", x, y, col_width, card_h - (y - top), _bullets_body(bullets)))
         shape_id += 1
         if bar_hex:
-            shapes.append(_decoration_shape(shape_id, "Card Bottom Rule", "rect", x, top + card_h, col_width, rule_h, bar_hex))
+            shapes.append(_decoration_shape(shape_id, "Decoration Card Bottom Rule", "rect", x, top + card_h, col_width, rule_h, bar_hex))
             shape_id += 1
     return "".join(shapes), []
 
@@ -548,6 +582,33 @@ def _render_executive_summary(extra_texts: list[str], columns: int, brand: dict,
 def _render_disclaimer(extra_texts: list[str]) -> tuple[str, list[str]]:
     paragraphs = "".join(_paragraph(text) for text in extra_texts) or "<a:p/>"
     return _content_placeholder(paragraphs), []
+
+
+def _render_closing(title: str, extra_texts: list[str], brand: dict, cx: int, cy: int) -> tuple[str, list[str]]:
+    """실제 하나증권 자료(28p, 마지막 장)를 근거로 한다: 전체 초록 배경(데코레이션에서
+    처리) 위에 짧은 안내문 한 줄 + 얇은 테두리 연락처 박스가 화면 하단 왼쪽에 있고,
+    가운데 로고 같은 건 없었다. 표준 제목 placeholder는 쓰지 않고(그 자리에 큰 글씨가
+    없는 페이지라서) 안내문·연락처를 전부 하단에 직접 그린다."""
+    shapes: list[str] = []
+    shape_id = 200
+    pale_hex = _role_hex(brand, "pale_mint")
+    intro_y = round(cy * 0.78)
+    box_y = intro_y + 350000
+    box_w = round((cx - 2 * MARGIN) * 0.4)
+    box_h = 900000
+    if title:
+        shapes.append(
+            _text_box(shape_id, "Closing Intro", MARGIN, intro_y, cx - 2 * MARGIN, 300000, _paragraph(title, color="FFFFFF", size=14))
+        )
+        shape_id += 1
+    if pale_hex:
+        shapes.append(_outline_box(shape_id, "Decoration Closing Box", MARGIN, box_y, box_w, box_h, pale_hex))
+        shape_id += 1
+    if extra_texts:
+        contact_paragraphs = "".join(_paragraph(text, color="FFFFFF", size=12) for text in extra_texts)
+        shapes.append(_text_box(shape_id, "Closing Contact", MARGIN + 91440, box_y + 91440, box_w - 182880, box_h - 182880, contact_paragraphs))
+        shape_id += 1
+    return "".join(shapes), []
 
 
 def _render_data_body(
@@ -589,12 +650,16 @@ def _render_slide(
         body_xml, role_warnings = _render_strategic_kpi(extra_texts, _require_columns(role, params), brand, cx)
     elif role == "executive-summary":
         body_xml, role_warnings = _render_executive_summary(extra_texts, _require_columns(role, params), brand, cx)
+    elif role == "closing":
+        body_xml, role_warnings = _render_closing(title, extra_texts, brand, cx, cy)
     else:
         body_xml, role_warnings = _render_data_body(extra_texts, table_rows, body_cx, body_cy, brand)
     warnings.extend(role_warnings)
     decoration_xml, decoration_warnings = _decorations_for_role(role, brand, cx, cy, body_cx)
     warnings.extend(decoration_warnings)
-    title_xml = _title_shape(title, color=TITLE_COLOR.get(role))
+    # closing은 표준 제목 placeholder를 안 쓴다 — _render_closing이 안내문을 이미
+    # 하단에 직접 그렸다(실제 자료에 상단 큰 제목이 없었다).
+    title_xml = "" if role == "closing" else _title_shape(title, color=TITLE_COLOR.get(role))
     slide_xml = (
         XML_HEADER
         + '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
