@@ -34,6 +34,7 @@ RESTYLE = load_module("restyle_deck", SCRIPTS_DIR / "restyle_deck.py")
 BUILD = load_module("build_deck", SCRIPTS_DIR / "build_deck.py")
 VISUAL_CHECK = load_module("visual_check", SCRIPTS_DIR / "visual_check.py")
 QUALITY_CHECK = load_module("quality_check", SCRIPTS_DIR / "quality_check.py")
+CONTENT_CHECK = load_module("content_check", SCRIPTS_DIR / "content_check.py")
 
 
 class DocumentValidationTests(unittest.TestCase):
@@ -1060,6 +1061,162 @@ class QualityCheckTests(unittest.TestCase):
             result = QUALITY_CHECK.run(out_path, deck_spec_path=spec_path)
         self.assertEqual("fail", result["status"])
         self.assertTrue(any("슬라이드 수 불일치" in e for e in result["errors"]))
+
+
+class ContentCheckTests(unittest.TestCase):
+    def _write_pptx(self, path: Path, slide_xml_by_name: dict[str, str]) -> None:
+        with zipfile.ZipFile(path, "w") as archive:
+            for name, xml in slide_xml_by_name.items():
+                archive.writestr(name, xml)
+
+    SLIDE_XML = (
+        '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        "<p:cSld><p:spTree>{runs}</p:spTree></p:cSld></p:sld>"
+    )
+
+    @staticmethod
+    def _run(text: str) -> str:
+        return f"<p:sp><p:txBody><a:p><a:r><a:t>{text}</a:t></a:r></a:p></p:txBody></p:sp>"
+
+    def test_check_placeholder_leftovers_flags_known_patterns(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out_path = Path(directory) / "out.pptx"
+            self._write_pptx(
+                out_path,
+                {"ppt/slides/slide1.xml": self.SLIDE_XML.format(runs=self._run("제목을 입력하세요"))},
+            )
+            result = CONTENT_CHECK.run(out_path)
+        self.assertEqual("fail", result["status"])
+        self.assertTrue(any("제목을 입력하세요" in e for e in result["errors"]))
+
+    def test_check_placeholder_leftovers_passes_real_content(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out_path = Path(directory) / "out.pptx"
+            self._write_pptx(
+                out_path,
+                {"ppt/slides/slide1.xml": self.SLIDE_XML.format(runs=self._run("2026년 1분기 실적"))},
+            )
+            result = CONTENT_CHECK.run(out_path)
+        self.assertEqual("pass", result["status"])
+
+    def test_check_missing_text_flags_text_dropped_from_deck_spec(self):
+        deck_spec = {
+            "schema_version": 1,
+            "source": {"path": "x.pptx", "sha256": "0" * 64},
+            "slides": [
+                {
+                    "number": 1,
+                    "part": "ppt/slides/slide1.xml",
+                    "elements": [
+                        {"kind": "shape", "name": "Title", "text": "제목"},
+                        {"kind": "shape", "name": "Body", "text": "이 텍스트는 사라짐"},
+                    ],
+                    "warnings": [],
+                }
+            ],
+            "warnings": [],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            out_path = Path(directory) / "out.pptx"
+            self._write_pptx(out_path, {"ppt/slides/slide1.xml": self.SLIDE_XML.format(runs=self._run("제목"))})
+            spec_path = Path(directory) / "deck_spec.json"
+            spec_path.write_text(json.dumps(deck_spec, ensure_ascii=False), encoding="utf-8")
+            result = CONTENT_CHECK.run(out_path, deck_spec_path=spec_path)
+        self.assertEqual("fail", result["status"])
+        self.assertTrue(any("이 텍스트는 사라짐" in e for e in result["errors"]))
+
+    def test_check_missing_text_respects_skip_slides_for_intentional_omission(self):
+        """build_deck.py의 cover 역할처럼 일부러 텍스트를 생략하는 슬라이드는
+        skip_slides로 알려주면 통과해야 한다(그 생략은 build_deck.py 자체 warnings의 몫)."""
+        deck_spec = {
+            "schema_version": 1,
+            "source": {"path": "x.pptx", "sha256": "0" * 64},
+            "slides": [
+                {
+                    "number": 1,
+                    "part": "ppt/slides/slide1.xml",
+                    "elements": [
+                        {"kind": "shape", "name": "Title", "text": "제목"},
+                        {"kind": "shape", "name": "Extra", "text": "표지에서 생략됨"},
+                    ],
+                    "warnings": [],
+                }
+            ],
+            "warnings": [],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            out_path = Path(directory) / "out.pptx"
+            self._write_pptx(out_path, {"ppt/slides/slide1.xml": self.SLIDE_XML.format(runs=self._run("제목"))})
+            spec_path = Path(directory) / "deck_spec.json"
+            spec_path.write_text(json.dumps(deck_spec, ensure_ascii=False), encoding="utf-8")
+            result = CONTENT_CHECK.run(out_path, deck_spec_path=spec_path, skip_slides={1})
+        self.assertEqual("pass", result["status"])
+
+    def test_run_passes_restyle_only_output_which_preserves_all_text_verbatim(self):
+        """restyle-only는 슬라이드 XML을 전혀 안 건드리므로 deck_spec의 모든 텍스트가
+        그대로 남아 있어야 한다 — 회귀 방지 겸 실제 스크립트 간 연동 확인."""
+        brand_path = ROOT / "hana-ppt-skill" / "assets" / "brand.json"
+        slide_xml = (
+            '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+            'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+            "<p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r>"
+            "<a:t>핵심이익의 견조한 성장에 힘입어 당기순이익 전년동기 대비 7.3% 증가</a:t>"
+            "</a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"
+        )
+        theme_xml = (
+            '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office">'
+            "<a:themeElements><a:clrScheme name=\"Office\">"
+            '<a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1>'
+            '<a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>'
+            '<a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2>'
+            '<a:accent1><a:srgbClr val="4472C4"/></a:accent1><a:accent2><a:srgbClr val="ED7D31"/></a:accent2>'
+            '<a:accent3><a:srgbClr val="A5A5A5"/></a:accent3><a:accent4><a:srgbClr val="FFC000"/></a:accent4>'
+            '<a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6>'
+            '<a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink>'
+            "</a:clrScheme>"
+            '<a:fontScheme name="Office"><a:majorFont><a:latin typeface="Calibri Light"/>'
+            '<a:ea typeface=""/><a:cs typeface=""/></a:majorFont>'
+            '<a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>'
+            "</a:fontScheme></a:themeElements></a:theme>"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.pptx"
+            with zipfile.ZipFile(source, "w") as archive:
+                archive.writestr(
+                    "ppt/presentation.xml",
+                    '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+                    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                    '<p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst></p:presentation>',
+                )
+                archive.writestr(
+                    "ppt/_rels/presentation.xml.rels",
+                    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                    '<Relationship Id="rId1" '
+                    'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" '
+                    'Target="slides/slide1.xml"/></Relationships>',
+                )
+                archive.writestr("ppt/theme/theme1.xml", theme_xml)
+                archive.writestr("ppt/slides/slide1.xml", slide_xml)
+            out_path = Path(directory) / "out.pptx"
+            RESTYLE.restyle(source, brand_path, out_path, "restyle-only")
+            deck_spec = {
+                "schema_version": 1,
+                "source": {"path": "sample.pptx", "sha256": "0" * 64},
+                "slides": [
+                    {
+                        "number": 1,
+                        "part": "ppt/slides/slide1.xml",
+                        "elements": [{"kind": "shape", "name": "Body", "text": "핵심이익의 견조한 성장에 힘입어 당기순이익 전년동기 대비 7.3% 증가"}],
+                        "warnings": [],
+                    }
+                ],
+                "warnings": [],
+            }
+            spec_path = Path(directory) / "deck_spec.json"
+            spec_path.write_text(json.dumps(deck_spec, ensure_ascii=False), encoding="utf-8")
+            result = CONTENT_CHECK.run(out_path, deck_spec_path=spec_path)
+        self.assertEqual("pass", result["status"])
 
 
 if __name__ == "__main__":

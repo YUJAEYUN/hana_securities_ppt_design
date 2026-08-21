@@ -53,10 +53,11 @@
 
 - `render_slides.py`: LibreOffice(`soffice`) → PDF → `pdftoppm` 슬라이드별 이미지, render manifest 생성 (구현 완료, PowerPoint 렌더는 아직 없음)
 - contact sheet 생성 (예정)
+- `content_check.py`(콘텐츠 QA, 구현 완료): `text_units.py`로 슬라이드의 실제 텍스트만 뽑아 (1) deck_spec.json 텍스트가 결과물에서 사라졌는지, (2) "제목을 입력하세요"류 PowerPoint 기본 안내 문구가 남아 있는지 본다. `build_deck.py`처럼 역할별로 텍스트를 의도적으로 생략하는 산출물은 `--skip-slides`로 알려주면 건너뛴다.
 - `quality_check.py`(구조 QA, 구현 완료): PPTX를 렌더링하지 않고 zip 구조만 본다 — `[Content_Types].xml`/`.rels` 정합성, 화면비, (deck_spec 대비) 슬라이드 수, 명시적 좌표가 있는 텍스트 도형의 경계·겹침. 실제 렌더 없이는 알 수 없는 텍스트 잘림·여백·밀도는 다루지 않는다(시각 QA의 몫으로 남김).
 - `visual_check.py`(시각 QA, 1차 구현 완료): 고정 루브릭 기반 비전 평가. `layouts.json`의 승인된 `elements`를 슬라이드별 체크리스트로 정리하고(+Pillow 있으면 단색 배경 역할은 기계적 색상 대조), 별도 세션이 [visual-qa-rubric.md](../hana-ppt-skill/references/visual-qa-rubric.md) 절차로 렌더 이미지를 보고 판정한다. 이 개발 환경은 `soffice` 렌더가 막혀 있어 실제 렌더 이미지로 종단간 검증은 아직 못 했다.
 - 자동 수정 3~5회 후 사람 확인
-- 검사 순서는 콘텐츠 QA → 구조 QA → 시각 QA 3단계로 둡니다. 계층 분리와 참고 근거는 [ARCHITECTURE.md](ARCHITECTURE.md)를 따릅니다. 콘텐츠 QA(텍스트 누락·플레이스홀더 검사)는 아직 없습니다.
+- 검사 순서는 콘텐츠 QA → 구조 QA → 시각 QA 3단계로 둡니다. 계층 분리와 참고 근거는 [ARCHITECTURE.md](ARCHITECTURE.md)를 따릅니다. 3단계 모두 1차 구현이 끝났습니다 — 남은 건 실제 PPTX·렌더 이미지로 종단간 검증하는 것뿐입니다.
 
 종료 조건: 정상 샘플은 통과하고 고의 불량 픽스처는 기대한 검사에서 실패합니다.
 
